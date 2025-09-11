@@ -121,6 +121,95 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+import 'package:flutter/material.dart';
+import 'package:flutter_midi_command/flutter_midi_command.dart';
+import 'dart:typed_data';
+
+final midiCommand = MidiCommand();
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  List<MidiDevice> devices = [];
+  List<String> midiMessages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    startScanning();
+    listenForMidi();
+  }
+
+  void startScanning() {
+    midiCommand.startScanningForBluetoothDevices();
+
+    midiCommand.devices.then((foundDevices) {
+      setState(() {
+        devices = foundDevices;
+      });
+      for (var device in foundDevices) {
+        print("Found device: ${device.name}");
+        connectToDevice(device);
+        break; // Just connect to the first one for now
+      }
+    });
+  }
+
+  void connectToDevice(MidiDevice device) {
+    midiCommand.connectToDevice(device);
+  }
+
+  void listenForMidi() {
+    midiCommand.onMidiDataReceived?.listen((Uint8List data) {
+      final message = "MIDI Data Received: ${data.toList()}";
+      print(message);
+      setState(() {
+        midiMessages.insert(0, message); // Add to top of list
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: Text('MIDI Input Viewer')),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                devices.isNotEmpty
+                    ? 'Connected to: ${devices.first.name}'
+                    : 'Scanning for MIDI devices...',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: midiMessages.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(midiMessages[index]),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 // import 'package:flutter/material.dart';
 // import 'package:flutter_midi_command/flutter_midi_command.dart';
 
