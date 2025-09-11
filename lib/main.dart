@@ -169,6 +169,14 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  void disconnectDevice() {
+    midiCommand.disconnectDevice(connectedDevice!);
+    setState(() {
+      connectedDevice = null;
+      midiMessages.clear();
+    });
+  }
+
   void listenForMidi() {
     midiCommand.onMidiDataReceived?.listen((MidiPacket packet) {
       final data = packet.data;
@@ -197,7 +205,7 @@ class _MyAppState extends State<MyApp> {
                 style: TextStyle(fontSize: 16),
               ),
             ),
-            if (connectedDevice == null)
+            if (connectedDevice == null) // When not connected to device
               Expanded(
                 child: Column(
                   children: [
@@ -225,15 +233,29 @@ class _MyAppState extends State<MyApp> {
                   ],
                 ),
               )
-            else
+            else // When connected to device
               Expanded(
-                child: ListView.builder(
-                  itemCount: midiMessages.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(midiMessages[index]),
-                    );
-                  },
+                child: Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: disconnectDevice,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text("Back to Device List"),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: midiMessages.length,
+                        itemBuilder: (context, index) {
+                          return ListTile(
+                            title: Text(midiMessages[index]),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
