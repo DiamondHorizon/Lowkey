@@ -149,6 +149,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void startScanning() {
+    midiCommand.startBluetoothCentral();
     midiCommand.startScanningForBluetoothDevices();
 
     midiCommand.devices.then((foundDevices) {
@@ -198,16 +199,30 @@ class _MyAppState extends State<MyApp> {
             ),
             if (connectedDevice == null)
               Expanded(
-                child: ListView.builder(
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    final device = devices[index];
-                    return ListTile(
-                      title: Text(device.name),
-                      subtitle: Text(device.type),
-                      onTap: () => connectToDevice(device),
-                    );
-                  },
+                child: Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        midiCommand.stopScanningForBluetoothDevices();
+                        midiCommand.startBluetoothCentral();
+                        midiCommand.startScanningForBluetoothDevices();
+                      },
+                      child: Text("Scan for MIDI Devices"),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: devices.length,
+                        itemBuilder: (context, index) {
+                          final device = devices[index];
+                          return ListTile(
+                            title: Text(device.name),
+                            subtitle: Text(device.type),
+                            onTap: () => connectToDevice(device),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               )
             else
