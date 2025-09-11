@@ -5,12 +5,6 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<!-- Midi -->
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>This app uses Bluetooth to connect to MIDI devices.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>This app uses the local network to discover MIDI devices.</string>
-	
 	<string>Lowkey</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -51,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Midi -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to connect to MIDI devices.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app uses the local network to discover MIDI devices.</string>
 </dict>
 </plist>
