@@ -138,6 +138,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   List<MidiDevice> devices = [];
+  MidiDevice? connectedDevice;
   List<String> midiMessages = [];
 
   @override
@@ -155,40 +156,27 @@ class _MyAppState extends State<MyApp> {
         setState(() {
           devices = foundDevices;
         });
-        for (var device in foundDevices) {
-          print("Found device: ${device.name}");
-          connectToDevice(device);
-          break;
-        }
-      } else {
-        print("No MIDI devices found.");
       }
     });
   }
 
   void connectToDevice(MidiDevice device) {
     midiCommand.connectToDevice(device);
+    setState(() {
+      connectedDevice = device;
+      midiMessages.clear(); // Clear old messages when switching devices
+    });
   }
 
   void listenForMidi() {
     midiCommand.onMidiDataReceived?.listen((MidiPacket packet) {
       final data = packet.data;
-      print("MIDI Packet Received: ${data.toList()}");
+      final timestamp = packet.timestamp;
 
-      // Optional: parse the message
-      if (data.length >= 3) {
-        final status = data[0];
-        final messageType = status & 0xF0;
-        final channel = status & 0x0F;
-        final note = data[1];
-        final velocity = data[2];
-
-        if (messageType == 0x90 && velocity > 0) {
-          print("Note On: note=$note velocity=$velocity channel=${channel + 1}");
-        } else if (messageType == 0x80 || (messageType == 0x90 && velocity == 0)) {
-          print("Note Off: note=$note channel=${channel + 1}");
-        }
-      }
+      final message = "[$timestamp] ${data.toList()}";
+      setState(() {
+        midiMessages.insert(0, message); // Add to top of list
+      });
     });
   }
 
@@ -202,22 +190,37 @@ class _MyAppState extends State<MyApp> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
-                devices.isNotEmpty
-                    ? 'Connected to: ${devices.first.name}'
-                    : 'Scanning for MIDI devices...',
+                connectedDevice != null
+                    ? 'Connected to: ${connectedDevice!.name}'
+                    : 'Select a MIDI device:',
                 style: TextStyle(fontSize: 16),
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: midiMessages.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(midiMessages[index]),
-                  );
-                },
+            if (connectedDevice == null)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: devices.length,
+                  itemBuilder: (context, index) {
+                    final device = devices[index];
+                    return ListTile(
+                      title: Text(device.name),
+                      subtitle: Text(device.type),
+                      onTap: () => connectToDevice(device),
+                    );
+                  },
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: midiMessages.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(midiMessages[index]),
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),
