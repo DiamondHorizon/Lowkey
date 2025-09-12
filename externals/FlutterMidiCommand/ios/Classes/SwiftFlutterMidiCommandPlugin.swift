@@ -39,6 +39,7 @@ func stringToId(str: String) -> UInt32 {
 
 public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, FlutterPlugin {
     private var bleScanEventSink: FlutterEventSink?
+    var bleScanStreamHandler = BleScanStreamHandler.shared
     // MIDI
     var midiClient = MIDIClientRef()
     var connectedDevices = Dictionary<String, ConnectedDevice>()
@@ -910,7 +911,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             "identifier": peripheral.identifier.uuidString,
             "rssi": RSSI
         ]
-        bleScanChannel?(deviceInfo)
+        bleScanStreamHandler.eventSink?(deviceInfo)
     }
 
     
