@@ -934,7 +934,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             print("Peripheral not found for identifier: \(identifier)")
             return
         }
-        centralManager.connect(peripheral, options: nil)
+        manager.connect(peripheral, options: nil)
     }
 
     
