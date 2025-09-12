@@ -145,24 +145,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             onTap: () async {
                               print("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
 
-                              // Give iOS time to promote the device
                               await Future.delayed(Duration(seconds: 3));
 
                               final updatedDevices = await midiCommand.devices;
-                              print("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
 
-                              MidiDevice? match;
-                              try {
-                                match = updatedDevices.firstWhere((d) => d.name == device['name']);
-                              } catch (_) {
-                                match = null;
-                              }
+                              if (updatedDevices != null && updatedDevices.isNotEmpty) {
+                                print("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
 
-                              if (match != null) {
-                                print("Promoted to CoreMIDI: ${match.name}");
-                                connectToDevice(match);
+                                MidiDevice? match;
+                                try {
+                                  match = updatedDevices.firstWhere((d) => d.name == device['name']);
+                                } catch (_) {
+                                  match = null;
+                                }
+
+                                if (match != null) {
+                                  print("Promoted to CoreMIDI: ${match.name}");
+                                  connectToDevice(match);
+                                } else {
+                                  print("Device not promoted to CoreMIDI yet.");
+                                }
                               } else {
-                                print("Device not promoted to CoreMIDI yet.");
+                                print("No CoreMIDI devices found.");
                               }
                             },
                           )),
