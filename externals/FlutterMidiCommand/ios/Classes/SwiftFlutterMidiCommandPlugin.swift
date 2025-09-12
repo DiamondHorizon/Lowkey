@@ -70,10 +70,10 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     let midiLog = OSLog(subsystem: "com.invisiblewrench.FlutterMidiCommand", category: "MIDI")
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-#if os(macOS)
-        let channel = FlutterMethodChannel(name: "plugins.invisiblewrench.com/flutter_midi_command", binaryMessenger: registrar.messenger)
         let bleScanChannel = FlutterEventChannel(name: "flutter_midi_command/ble_scan", binaryMessenger: registrar.messenger())
         bleScanChannel.setStreamHandler(BleScanStreamHandler.shared)
+#if os(macOS)
+        let channel = FlutterMethodChannel(name: "plugins.invisiblewrench.com/flutter_midi_command", binaryMessenger: registrar.messenger)
 #else
         let channel = FlutterMethodChannel(name: "plugins.invisiblewrench.com/flutter_midi_command", binaryMessenger: registrar.messenger())
 #endif
