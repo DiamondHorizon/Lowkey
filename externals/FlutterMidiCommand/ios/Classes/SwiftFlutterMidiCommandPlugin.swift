@@ -941,6 +941,11 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     // Copilot
     func connectToBlePeripheral(identifier: String) {
         sendLogToDart("Swift: connectToBlePeripheral called with identifier: \(identifier)")
+        guard manager != nil else {
+            sendLogToDart("CBCentralManager is nil—cannot connect.")
+            return
+        }
+        sendLogToDart("Peripheral state: \(peripheral.state.rawValue)")
         guard let peripheral = discoveredPeripherals[identifier] else {
             print("Peripheral not found for identifier: \(identifier)")
             return
