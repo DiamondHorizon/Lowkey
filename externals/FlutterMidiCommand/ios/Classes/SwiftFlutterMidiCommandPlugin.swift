@@ -44,6 +44,13 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     var bleScanStreamHandler = BleScanStreamHandler.shared
     var discoveredPeripherals: [String: CBPeripheral] = [:]
 
+    // Copilot
+    func sendLogToDart(_ message: String) {
+        DispatchQueue.main.async {
+            self.channel?.invokeMethod("logFromNative", arguments: message)
+        }
+    }
+
     // MIDI
     var midiClient = MIDIClientRef()
     var connectedDevices = Dictionary<String, ConnectedDevice>()
@@ -214,6 +221,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         // Copilot
+        sendLogToDart("Swift: handle received method call: \(call.method)")
         if call.method == "connectToBlePeripheral" {
             if let identifier = call.arguments as? String {
                 connectToBlePeripheral(identifier: identifier)
@@ -930,6 +938,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
 
     // Copilot
     func connectToBlePeripheral(identifier: String) {
+        sendLogToDart("Swift: connectToBlePeripheral called with identifier: \(identifier)")
         guard let peripheral = discoveredPeripherals[identifier] else {
             print("Peripheral not found for identifier: \(identifier)")
             return

@@ -33,6 +33,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     log("Starting");
+    MethodChannel('flutter_midi_command').setMethodCallHandler((call) async {
+      if (call.method == 'logFromNative') {
+        final message = call.arguments as String;
+        log("[Native] $message");
+      }
+    });
     WidgetsBinding.instance.addObserver(this);
     midiCommand.startBluetoothCentral();
         midiCommand.onBleDeviceDiscovered.listen((device) {
