@@ -195,7 +195,9 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     // BLE
     public func startBluetoothCentralWhenNeeded(){
         if(manager == nil){
-            manager = CBCentralManager.init(delegate: self, queue: DispatchQueue.global(qos: .userInteractive))
+            // manager = CBCentralManager.init(delegate: self, queue: DispatchQueue.global(qos: .userInteractive))
+            manager = CBCentralManager(delegate: self, queue: nil) // Copilot
+            sendLogToDart("CBCentralManager initialized on main queue") // Copilot
             
             updateBluetoothState(data: getBluetoothCentralStateAsString())
         }
@@ -949,7 +951,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             sendLogToDart("Peripheral not found for identifier: \(identifier)")
             return
         }
-        sendLogToDart("Peripheral state: \(peripheral.state.rawValue)") 
         manager.connect(peripheral, options: nil)
     }
 
