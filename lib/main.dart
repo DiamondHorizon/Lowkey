@@ -154,7 +154,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
                             onTap: () async {
                               log("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
-
+                              MethodChannel('flutter_midi_command')
+                                .invokeMethod('connectToBlePeripheral', device['identifier']);
+                              log("Attempted manual BLE connection to ${device['name']}");
                               await Future.delayed(Duration(seconds: 3));
 
                               final updatedDevices = await midiCommand.devices;
