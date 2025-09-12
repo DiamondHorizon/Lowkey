@@ -104,78 +104,77 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 style: TextStyle(fontSize: 16),
               ),
             ),
-            if (connectedDevice == null)
-              Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: () async {
-                      midiCommand.stopScanningForBluetoothDevices();
-                      midiCommand.startBluetoothCentral();
-                      midiCommand.startScanningForBluetoothDevices();
-
-                      await Future.delayed(Duration(seconds: 2));
-
-                      final foundDevices = await midiCommand.devices;
-                      if (foundDevices != null && foundDevices.isNotEmpty) {
-                        print("Found devices: ${foundDevices.map((d) => d.name).toList()}");
-                        setState(() {
-                          devices = foundDevices;
-                        });
-                      } else {
-                        print("No devices found.");
-                      }
-                    },
-                    child: Text("Scan for MIDI Devices"),
-                  ),
-                  Expanded(
-                    child: ListView(
+            Expanded(
+              child: connectedDevice == null
+                  ? Column(
                       children: [
-                        Text("CoreMIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ...devices.map((device) => ListTile(
-                          title: Text(device.name),
-                          subtitle: Text(device.type),
-                          onTap: () => connectToDevice(device),
-                        )),
-                        Divider(),
-                        Text("Raw BLE MIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ...bleDevices.map((device) => ListTile(
-                          title: Text(device['name']),
-                          subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
-                          onTap: () {
-                            print("Tapped raw BLE device: ${device['identifier']}");
-                            // Optional: implement direct BLE connection
+                        ElevatedButton(
+                          onPressed: () async {
+                            midiCommand.stopScanningForBluetoothDevices();
+                            midiCommand.startBluetoothCentral();
+                            midiCommand.startScanningForBluetoothDevices();
+
+                            await Future.delayed(Duration(seconds: 2));
+
+                            final foundDevices = await midiCommand.devices;
+                            if (foundDevices != null && foundDevices.isNotEmpty) {
+                              print("Found devices: ${foundDevices.map((d) => d.name).toList()}");
+                              setState(() {
+                                devices = foundDevices;
+                              });
+                            } else {
+                              print("No devices found.");
+                            }
                           },
-                        )),
+                          child: Text("Scan for MIDI Devices"),
+                        ),
+                        Expanded(
+                          child: ListView(
+                            children: [
+                              Text("CoreMIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ...devices.map((device) => ListTile(
+                                    title: Text(device.name),
+                                    subtitle: Text(device.type),
+                                    onTap: () => connectToDevice(device),
+                                  )),
+                              Divider(),
+                              Text("Raw BLE MIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ...bleDevices.map((device) => ListTile(
+                                    title: Text(device['name']),
+                                    subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
+                                    onTap: () {
+                                      print("Tapped raw BLE device: ${device['identifier']}");
+                                      // Optional: implement direct BLE connection
+                                    },
+                                  )),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: disconnectDevice,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text("Back to Device List"),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: midiMessages.length,
+                            itemBuilder: (context, index) {
+                              return ListTile(
+                                title: Text(midiMessages[index]),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
-              )
-            else
-              Expanded(
-                child: Column(
-                  children: [
-                    ElevatedButton(
-                      onPressed: disconnectDevice,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text("Back to Device List"),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: midiMessages.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            title: Text(midiMessages[index]),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ),
           ],
         ),
       ),
