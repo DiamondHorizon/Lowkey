@@ -142,9 +142,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                               ...bleDevices.map((device) => ListTile(
                                     title: Text(device['name']),
                                     subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
-                                    onTap: () {
+                                    onTap: () async {
                                       print("Tapped raw BLE device: ${device['identifier']}");
-                                      // Optional: implement direct BLE connection
+                                      // Give iOS time to promote the device
+                                      await Future.delayed(Duration(seconds: 3));
+
+                                      final updatedDevices = await midiCommand.devices;
+                                      if (updatedDevices != null) {
+                                        MidiDevice? match;
+                                        try {
+                                          match = updatedDevices.firstWhere((d) => d.name == device['name']);
+                                        } catch (e) {
+                                          match = null;
+                                        }
+
+                                        if (match != null) {
+                                          print("Promoted to CoreMIDI: ${match.name}");
+                                          connectToDevice(match);
+                                        } else {
+                                          print("Device not promoted to CoreMIDI yet.");
+                                        }
+                                      }
                                     },
                                   )),
                             ],
