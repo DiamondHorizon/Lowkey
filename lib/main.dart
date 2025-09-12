@@ -14,14 +14,24 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  // Instance Variables
   List<MidiDevice> devices = [];
   MidiDevice? connectedDevice;
   List<String> midiMessages = [];
   List<Map<String, dynamic>> bleDevices = [];
+  List<String> debugLog = [];
+
+  void log(String message) {
+    final now = DateTime.now().toIso8601String();
+    setState(() {
+      debugLog.insert(0, "[$now] $message");
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    log("Starting");
     WidgetsBinding.instance.addObserver(this);
     midiCommand.startBluetoothCentral();
         midiCommand.onBleDeviceDiscovered.listen((device) {
@@ -118,12 +128,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
                         final foundDevices = await midiCommand.devices;
                         if (foundDevices != null && foundDevices.isNotEmpty) {
-                          print("Found devices: ${foundDevices.map((d) => d.name).toList()}");
+                          log("Found devices: ${foundDevices.map((d) => d.name).toList()}");
                           setState(() {
                             devices = foundDevices;
                           });
                         } else {
-                          print("No devices found.");
+                          log("No devices found.");
                         }
                       },
                       child: Text("Scan for MIDI Devices"),
@@ -143,14 +153,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             title: Text(device['name']),
                             subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
                             onTap: () async {
-                              print("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
+                              log("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
 
                               await Future.delayed(Duration(seconds: 3));
 
                               final updatedDevices = await midiCommand.devices;
 
                               if (updatedDevices != null && updatedDevices.isNotEmpty) {
-                                print("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
+                                log("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
 
                                 MidiDevice? match;
                                 try {
@@ -160,13 +170,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 }
 
                                 if (match != null) {
-                                  print("Promoted to CoreMIDI: ${match.name}");
+                                  log("Promoted to CoreMIDI: ${match.name}");
                                   connectToDevice(match);
                                 } else {
-                                  print("Device not promoted to CoreMIDI yet.");
+                                  log("Device not promoted to CoreMIDI yet.");
                                 }
                               } else {
-                                print("No CoreMIDI devices found.");
+                                log("No CoreMIDI devices found.");
                               }
                             },
                           )),
@@ -196,6 +206,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     ),
                   ),
                 ],
+              ),
+            ),
+            Container(
+              height: 150,
+              color: Colors.black,
+              child: ListView.builder(
+                reverse: true,
+                itemCount: debugLog.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                    child: Text(
+                      debugLog[index],
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 12),
+                    ),
+                  );
+                },
               ),
             ),
           ],
