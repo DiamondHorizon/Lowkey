@@ -136,7 +136,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   List<MidiDevice> devices = [];
   MidiDevice? connectedDevice;
   List<String> midiMessages = [];
@@ -154,6 +154,8 @@ class _MyAppState extends State<MyApp> {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       startScanning();
+    } else if (state == AppLifecycleState.paused) {
+      midiCommand.stopScanningForBluetoothDevices();
     }
   }
 
@@ -225,15 +227,16 @@ class _MyAppState extends State<MyApp> {
                         midiCommand.startBluetoothCentral();
                         midiCommand.startScanningForBluetoothDevices();
 
-                        // Wait a moment for scan results to populate
-                        await Future.delayed(Duration(seconds: 2));
+                        await Future.delayed(Duration(seconds: 2)); // Give scan time to complete
 
-                        // Force refresh of device list
                         final foundDevices = await midiCommand.devices;
-                        if (foundDevices != null) {
+                        if (foundDevices != null && foundDevices.isNotEmpty) {
+                          print("Found devices: ${foundDevices.map((d) => d.name).toList()}");
                           setState(() {
                             devices = foundDevices;
                           });
+                        } else {
+                          print("No devices found.");
                         }
                       },
                       child: Text("Scan for MIDI Devices"),
@@ -285,143 +288,3 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_midi_command/flutter_midi_command.dart';
-
-// void main() => runApp(MidiApp());
-
-// class MidiApp extends StatefulWidget {
-//   @override
-//   _MidiAppState createState() => _MidiAppState();
-// }
-
-// class _MidiAppState extends State<MidiApp> {
-//   final MidiCommand _midiCommand = MidiCommand();
-//   List<MidiDevice> _devices = [];
-//   MidiDevice? _selectedDevice;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _midiCommand.devices.then((devices) {
-//       setState(() {
-//         _devices = devices ?? [];
-//       });
-//     });
-
-//     _midiCommand.onMidiDataReceived?.listen((event) {
-//       print("MIDI Data: ${event.data}");
-//     });
-//   }
-
-//   void _connectToDevice(MidiDevice device) {
-//     _midiCommand.connectToDevice(device);
-//     setState(() {
-//       _selectedDevice = device;
-//     });
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       home: Scaffold(
-//         appBar: AppBar(title: Text('MIDI Input Tester')),
-//         body: Column(
-//           children: [
-//             Text('Available Devices:'),
-//             ..._devices.map((device) => ListTile(
-//               title: Text(device.name ?? 'Unknown'),
-//               onTap: () => _connectToDevice(device),
-//             )),
-//             if (_selectedDevice != null)
-//               Padding(
-//                 padding: const EdgeInsets.all(8.0),
-//                 child: Text('Connected to: ${_selectedDevice!.name}'),
-//               ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-
-
-
-
-// import 'dart:js' as js;
-// import 'dart:html';
-// import 'package:flutter/material.dart';
-
-// void main() {
-//   runApp(const MidiWebApp());
-// }
-
-// class MidiWebApp extends StatelessWidget {
-//   const MidiWebApp({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'MIDI Web Tester',
-//       home: Scaffold(
-//         appBar: AppBar(title: const Text('MIDI Web Tester')),
-//         body: const Center(
-//           child: MidiInterface(),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// class MidiInterface extends StatefulWidget {
-//   const MidiInterface({super.key});
-
-//   @override
-//   State<MidiInterface> createState() => _MidiInterfaceState();
-// }
-
-// class _MidiInterfaceState extends State<MidiInterface> {
-//   List<String> midiMessages = [];
-
-//   void _addMessage(String msg) {
-//     setState(() {
-//       midiMessages.add(msg);
-//     });
-//   }
-
-//   void _initializeMidi() {
-//     // Define a global callback for JS to call
-//     js.context['onMidiMessageFromJS'] = (String msg) {
-//       _addMessage(msg);
-//     };
-
-//     // Call the JS function to start MIDI
-//     js.context.callMethod('initWebMidi');
-//   }
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _initializeMidi();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       children: [
-//         const Text('Incoming MIDI Messages:'),
-//         Expanded(
-//           child: ListView.builder(
-//             itemCount: midiMessages.length,
-//             itemBuilder: (context, index) {
-//               return ListTile(title: Text(midiMessages[index]));
-//             },
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
