@@ -43,6 +43,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     // Copilot
     var bleScanStreamHandler = BleScanStreamHandler.shared
     var discoveredPeripherals: [String: CBPeripheral] = [:]
+    var channel: FlutterMethodChannel?
 
     // Copilot
     func sendLogToDart(_ message: String) {
@@ -90,6 +91,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
         let channel = FlutterMethodChannel(name: "plugins.invisiblewrench.com/flutter_midi_command", binaryMessenger: registrar.messenger())
 #endif
         let instance = SwiftFlutterMidiCommandPlugin()
+        instance.channel = channel // Copilot
         registrar.addMethodCallDelegate(instance, channel: channel)
         
         instance.setup(registrar)
