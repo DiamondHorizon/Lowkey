@@ -38,7 +38,7 @@ func stringToId(str: String) -> UInt32 {
 }
 
 public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, FlutterPlugin {
-    
+    private var bleScanEventSink: FlutterEventSink?
     // MIDI
     var midiClient = MIDIClientRef()
     var connectedDevices = Dictionary<String, ConnectedDevice>()
@@ -72,6 +72,8 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     public static func register(with registrar: FlutterPluginRegistrar) {
 #if os(macOS)
         let channel = FlutterMethodChannel(name: "plugins.invisiblewrench.com/flutter_midi_command", binaryMessenger: registrar.messenger)
+        let bleScanChannel = FlutterEventChannel(name: "flutter_midi_command/ble_scan", binaryMessenger: registrar.messenger())
+        bleScanChannel.setStreamHandler(BleScanStreamHandler.shared)
 #else
         let channel = FlutterMethodChannel(name: "plugins.invisiblewrench.com/flutter_midi_command", binaryMessenger: registrar.messenger())
 #endif
@@ -1563,7 +1565,6 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
     var peripheral:CBPeripheral
     var characteristic:CBCharacteristic?
     
-    
     // BLE MIDI parsing
     enum BLE_HANDLER_STATE
     {
@@ -1994,6 +1995,21 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
             break
         }
         return 0
+    }
+
+    class BleScanStreamHandler: NSObject, FlutterStreamHandler {
+        static let shared = BleScanStreamHandler()
+        var eventSink: FlutterEventSink?
+
+        func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+            self.eventSink = events
+            return nil
+        }
+
+        func onCancel(withArguments arguments: Any?) -> FlutterError? {
+            self.eventSink = nil
+            return nil
+        }
     }
     
 }
