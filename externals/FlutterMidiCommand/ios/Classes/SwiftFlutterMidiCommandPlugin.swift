@@ -968,12 +968,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             self.sendLogToDart("Connect call dispatched.")
         }
     }
-
-    // Copilot
-    func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        sendLogToDart("Failed to connect: \(error?.localizedDescription ?? "Unknown error")")
-    }
-
     
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("central did connect \(peripheral)")
@@ -981,6 +975,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     }
     
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        sendLogToDart("Failed to connect: \(error?.localizedDescription ?? "Unknown error")") // Copilot
         print("central did fail to connect state \(peripheral) \(String(describing: error?.localizedDescription))")
         
         updateSetupState(data: "connectionFailed")
