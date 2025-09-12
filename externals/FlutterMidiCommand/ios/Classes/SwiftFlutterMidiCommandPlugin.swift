@@ -1996,21 +1996,20 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
             break
         }
         return 0
+    }    
+}
+
+class BleScanStreamHandler: NSObject, FlutterStreamHandler {
+    static let shared = BleScanStreamHandler()
+    var eventSink: FlutterEventSink?
+
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        self.eventSink = events
+        return nil
     }
 
-    class BleScanStreamHandler: NSObject, FlutterStreamHandler {
-        static let shared = BleScanStreamHandler()
-        var eventSink: FlutterEventSink?
-
-        func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-            self.eventSink = events
-            return nil
-        }
-
-        func onCancel(withArguments arguments: Any?) -> FlutterError? {
-            self.eventSink = nil
-            return nil
-        }
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        self.eventSink = nil
+        return nil
     }
-    
 }
