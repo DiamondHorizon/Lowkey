@@ -33,7 +33,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     log("Starting");
-    MethodChannel('flutter_midi_command').setMethodCallHandler((call) async {
+    MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
+        .setMethodCallHandler((call) async {
       if (call.method == 'logFromNative') {
         final message = call.arguments as String;
         log("[Native] $message");
@@ -162,7 +163,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             onTap: () async {
                               log("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
                               await MethodChannel('flutter_midi_command')
-                                .invokeMethod('connectToBlePeripheral', device['identifier']);
+                                  .invokeMethod('connectToBlePeripheral', device['identifier']);
                               log("Attempted manual BLE connection to ${device['name']}");
                               await Future.delayed(Duration(seconds: 3));
 
