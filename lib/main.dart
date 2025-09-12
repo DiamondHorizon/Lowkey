@@ -279,6 +279,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         },
                       ),
                     ),
+                    StreamBuilder<Map<String, dynamic>>(
+                      stream: midiCommand.onBleDeviceDiscovered,
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return SizedBox.shrink();
+                        final device = snapshot.data!;
+                        return ListTile(
+                          title: Text(device['name']),
+                          subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
+                          onTap: () {
+                            // Optional: connect directly via BLE
+                          },
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
