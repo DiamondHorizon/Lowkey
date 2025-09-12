@@ -945,11 +945,11 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             sendLogToDart("CBCentralManager is nil—cannot connect.")
             return
         }
-        sendLogToDart("Peripheral state: \(peripheral.state.rawValue)")
         guard let peripheral = discoveredPeripherals[identifier] else {
-            print("Peripheral not found for identifier: \(identifier)")
+            sendLogToDart("Peripheral not found for identifier: \(identifier)")
             return
         }
+        sendLogToDart("Peripheral state: \(peripheral.state.rawValue)") 
         manager.connect(peripheral, options: nil)
     }
 
