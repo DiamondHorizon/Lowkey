@@ -144,12 +144,20 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    midiCommand.startBluetoothCentral();
     startScanning();
     listenForMidi();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      startScanning();
+    }
+  }
+
   void startScanning() {
-    midiCommand.startBluetoothCentral();
     midiCommand.startScanningForBluetoothDevices();
 
     midiCommand.devices.then((foundDevices) {
@@ -212,10 +220,21 @@ class _MyAppState extends State<MyApp> {
                 child: Column(
                   children: [
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         midiCommand.stopScanningForBluetoothDevices();
                         midiCommand.startBluetoothCentral();
                         midiCommand.startScanningForBluetoothDevices();
+
+                        // Wait a moment for scan results to populate
+                        await Future.delayed(Duration(seconds: 2));
+
+                        // Force refresh of device list
+                        final foundDevices = await midiCommand.devices;
+                        if (foundDevices != null) {
+                          setState(() {
+                            devices = foundDevices;
+                          });
+                        }
                       },
                       child: Text("Scan for MIDI Devices"),
                     ),
