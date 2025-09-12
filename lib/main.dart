@@ -170,11 +170,13 @@ class _MyAppState extends State<MyApp> {
   }
 
   void disconnectDevice() {
-    midiCommand.disconnectDevice(connectedDevice!);
-    setState(() {
-      connectedDevice = null;
-      midiMessages.clear();
-    });
+    if (connectedDevice != null) {
+      midiCommand.disconnectDevice(connectedDevice!);
+      setState(() {
+        connectedDevice = null;
+        midiMessages.clear();
+      });
+    }
   }
 
   void listenForMidi() {
