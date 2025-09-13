@@ -969,8 +969,8 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             self.sendLogToDart("Dispatching connect call...")
             peripheral.delegate = self
             self.sendLogToDart("Peripheral state before connect: \(peripheral.state.rawValue)")
-            if connectedDevices[identifier] == nil {
-                connectedDevices[identifier] = ConnectedBLEDevice(
+            if self.connectedDevices[identifier] == nil {
+                self.connectedDevices[identifier] = ConnectedBLEDevice(
                     id: identifier,
                     type: "BLE",
                     streamHandler: rxStreamHandler,
