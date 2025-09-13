@@ -34,10 +34,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     log("Starting");
     MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
-        .setMethodCallHandler((call) async {
+    .setMethodCallHandler((call) async {
       if (call.method == 'logFromNative') {
         final message = call.arguments as String;
         log("[Native] $message");
+      } else if (call.method == "coreMidiDeviceReady") {
+        final name = call.arguments["name"];
+        connectToDevice(name);
       }
     });
     WidgetsBinding.instance.addObserver(this);
@@ -165,29 +168,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                               await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
                                   .invokeMethod('connectToBlePeripheral', device['identifier']);
                               log("Attempted manual BLE connection to ${device['name']}");
-                              await Future.delayed(Duration(seconds: 3));
+                              // await Future.delayed(Duration(seconds: 3));
 
-                              final updatedDevices = await midiCommand.devices;
+                              // final updatedDevices = await midiCommand.devices;
 
-                              if (updatedDevices != null && updatedDevices.isNotEmpty) {
-                                log("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
+                              // if (updatedDevices != null && updatedDevices.isNotEmpty) {
+                              //   log("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
 
-                                MidiDevice? match;
-                                try {
-                                  match = updatedDevices.firstWhere((d) => d.name == device['name']);
-                                } catch (_) {
-                                  match = null;
-                                }
+                              //   MidiDevice? match;
+                              //   try {
+                              //     match = updatedDevices.firstWhere((d) => d.name == device['name']);
+                              //   } catch (_) {
+                              //     match = null;
+                              //   }
 
-                                if (match != null) {
-                                  log("Promoted to CoreMIDI: ${match.name}");
-                                  connectToDevice(match);
-                                } else {
-                                  log("Device not promoted to CoreMIDI yet.");
-                                }
-                              } else {
-                                log("No CoreMIDI devices found.");
-                              }
+                              //   if (match != null) {
+                              //     log("Promoted to CoreMIDI: ${match.name}");
+                              //     connectToDevice(match);
+                              //   } else {
+                              //     log("Device not promoted to CoreMIDI yet.");
+                              //   }
+                              // } else {
+                              //   log("No CoreMIDI devices found.");
+                              // }
                             },
                           )),
                         ],
