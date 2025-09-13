@@ -916,6 +916,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     
     // Central
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        sendLogToDart("CBCentralManager state updated: \(central.state.rawValue)") // Copilot
         print("central did update state \(getBluetoothCentralStateAsString())")
         updateBluetoothState(data: getBluetoothCentralStateAsString());
     }
@@ -974,16 +975,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
             self.sendLogToDart("  Is connected: \(peripheral.state == .connected)")
             self.manager.connect(peripheral, options: nil)
             self.sendLogToDart("Connect call dispatched.")
-        }
-    }
-
-    // Copilot
-    func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        sendLogToDart("CBCentralManager state updated: \(central.state.rawValue)")
-        
-        if central.state == .poweredOn {
-            // Safe to scan or connect now
-            startScanning()
         }
     }
     
