@@ -11,7 +11,13 @@ void main() {
 
 class MyApp extends StatefulWidget {
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'MIDI Input Viewer',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: MidiInputScreen(), // Your main widget
+    );
+  }
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
@@ -128,149 +134,158 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       });
     });
   }
+}
 
+class MidiInputScreen extends StatefulWidget {
+  @override
+  _MidiInputScreenState createState() => _MidiInputScreenState();
+}
+
+class _MidiInputScreenState extends State<MidiInputScreen> {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: Text('MIDI Input Viewer')),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                connectedDevice != null
-                    ? 'Connected to: ${connectedDevice!.name}'
-                    : 'Select a MIDI device:',
-                style: TextStyle(fontSize: 16),
-              ),
+    return Scaffold(
+      appBar: AppBar(title: Text('MIDI Input Viewer')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              connectedDevice != null
+                  ? 'Connected to: ${connectedDevice!.name}'
+                  : 'Select a MIDI device:',
+              style: TextStyle(fontSize: 16),
             ),
-            // Body of screen
-            Expanded(
-              child: connectedDevice == null
-              ? Column(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () async {
-                        midiCommand.stopScanningForBluetoothDevices();
-                        midiCommand.startBluetoothCentral();
-                        midiCommand.startScanningForBluetoothDevices();
-
-                        await Future.delayed(Duration(seconds: 2));
-
-                        final foundDevices = await midiCommand.devices;
-                        if (foundDevices != null && foundDevices.isNotEmpty) {
-                          log("Found devices: ${foundDevices.map((d) => d.name).toList()}");
-                          setState(() {
-                            devices = foundDevices;
-                          });
-                        } else {
-                          log("No devices found.");
-                        }
-                      },
-                      child: Text("Scan for MIDI Devices"),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        children: [
-                          Text("CoreMIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
-                          ...devices.map((device) => ListTile(
-                                title: Text(device.name),
-                                subtitle: Text(device.type),
-                                onTap: () => connectToDevice(device),
-                              )),
-                          Divider(),
-                          Text("Raw BLE MIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
-                          ...bleDevices.map((device) => ListTile(
-                            title: Text(device['name']),
-                            subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
-                            onTap: () async {
-                              log("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
-                              await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
-                                  .invokeMethod('connectToBlePeripheral', device['identifier']);
-                              log("Attempted manual BLE connection to ${device['name']}");
-                              // await Future.delayed(Duration(seconds: 3));
-
-                              // final updatedDevices = await midiCommand.devices;
-
-                              // if (updatedDevices != null && updatedDevices.isNotEmpty) {
-                              //   log("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
-
-                              //   MidiDevice? match;
-                              //   try {
-                              //     match = updatedDevices.firstWhere((d) => d.name == device['name']);
-                              //   } catch (_) {
-                              //     match = null;
-                              //   }
-
-                              //   if (match != null) {
-                              //     log("Promoted to CoreMIDI: ${match.name}");
-                              //     connectToDevice(match);
-                              //   } else {
-                              //     log("Device not promoted to CoreMIDI yet.");
-                              //   }
-                              // } else {
-                              //   log("No CoreMIDI devices found.");
-                              // }
-                            },
-                          )),
-                        ],
-                      ),
-                    ),
-                  ],
-                )
-              : Column(
+          ),
+          // Body of screen
+          Expanded(
+            child: connectedDevice == null
+            ? Column(
                 children: [
                   ElevatedButton(
-                    onPressed: disconnectDevice,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text("Back to Device List"),
+                    onPressed: () async {
+                      midiCommand.stopScanningForBluetoothDevices();
+                      midiCommand.startBluetoothCentral();
+                      midiCommand.startScanningForBluetoothDevices();
+
+                      await Future.delayed(Duration(seconds: 2));
+
+                      final foundDevices = await midiCommand.devices;
+                      if (foundDevices != null && foundDevices.isNotEmpty) {
+                        log("Found devices: ${foundDevices.map((d) => d.name).toList()}");
+                        setState(() {
+                          devices = foundDevices;
+                        });
+                      } else {
+                        log("No devices found.");
+                      }
+                    },
+                    child: Text("Scan for MIDI Devices"),
                   ),
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: midiMessages.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(midiMessages[index]),
-                        );
-                      },
+                    child: ListView(
+                      children: [
+                        Text("CoreMIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ...devices.map((device) => ListTile(
+                              title: Text(device.name),
+                              subtitle: Text(device.type),
+                              onTap: () => connectToDevice(device),
+                            )),
+                        Divider(),
+                        Text("Raw BLE MIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ...bleDevices.map((device) => ListTile(
+                          title: Text(device['name']),
+                          subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
+                          onTap: () async {
+                            log("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
+                            await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
+                                .invokeMethod('connectToBlePeripheral', device['identifier']);
+                            log("Attempted manual BLE connection to ${device['name']}");
+                            // await Future.delayed(Duration(seconds: 3));
+
+                            // final updatedDevices = await midiCommand.devices;
+
+                            // if (updatedDevices != null && updatedDevices.isNotEmpty) {
+                            //   log("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
+
+                            //   MidiDevice? match;
+                            //   try {
+                            //     match = updatedDevices.firstWhere((d) => d.name == device['name']);
+                            //   } catch (_) {
+                            //     match = null;
+                            //   }
+
+                            //   if (match != null) {
+                            //     log("Promoted to CoreMIDI: ${match.name}");
+                            //     connectToDevice(match);
+                            //   } else {
+                            //     log("Device not promoted to CoreMIDI yet.");
+                            //   }
+                            // } else {
+                            //   log("No CoreMIDI devices found.");
+                            // }
+                          },
+                        )),
+                      ],
                     ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SongListScreen()),
-                      );
-                    },
-                    child: Text("Next"),
                   ),
                 ],
-              ),
+              )
+            : Column(
+              children: [
+                // Back to device list button
+                ElevatedButton(
+                  onPressed: disconnectDevice,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text("Back to Device List"),
+                ),
+                // Midi input list
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: midiMessages.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(midiMessages[index]),
+                      );
+                    },
+                  ),
+                ),
+                // Next button
+                ElevatedButton(
+                  onPressed: () {
+                    log("Next button tapped");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SongListScreen()),
+                    );
+                  },
+                  child: Text("Next"),
+                ),
+              ],
             ),
-            // Output log
-            Container(
-              height: 150,
-              color: Colors.black,
-              child: ListView.builder(
-                reverse: true,
-                itemCount: debugLog.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                    child: Text(
-                      debugLog[index],
-                      style: TextStyle(color: Colors.greenAccent, fontSize: 12),
-                    ),
-                  );
-                },
-              ),
+          ),
+          // Output log
+          Container(
+            height: 150,
+            color: Colors.black,
+            child: ListView.builder(
+              reverse: true,
+              itemCount: debugLog.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                  child: Text(
+                    debugLog[index],
+                    style: TextStyle(color: Colors.greenAccent, fontSize: 12),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
