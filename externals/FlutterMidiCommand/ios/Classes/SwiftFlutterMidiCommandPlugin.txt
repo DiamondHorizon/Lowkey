@@ -968,34 +968,20 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
         DispatchQueue.main.async {
             self.sendLogToDart("Dispatching connect call...")
             peripheral.delegate = self
-            self.sendLogToDart("Peripheral state before connect: \(peripheral.state.rawValue)")
-            if connectedDevices[identifier] == nil {
-                connectedDevices[identifier] = ConnectedBLEDevice(
-                    id: identifier,
-                    type: "BLE",
-                    streamHandler: rxStreamHandler,
-                    result: nil,
-                    peripheral: peripheral,
-                    ports: nil
-                )
-            }
+            self.sendLogToDart("Peripheral debug info:")
+            self.sendLogToDart("  Name: \(peripheral.name ?? "Unnamed")")
+            self.sendLogToDart("  Identifier: \(peripheral.identifier.uuidString)")
+            self.sendLogToDart("  State: \(peripheral.state.rawValue)")
+            self.sendLogToDart("  Is connected: \(peripheral.state == .connected)")
             self.manager.connect(peripheral, options: nil)
             self.sendLogToDart("Connect call dispatched.")
         }
     }
     
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        sendLogToDart("Successfully connected to peripheral: \(peripheral.name ?? "Unnamed")") // Copilot
+        sendLogToDart("central did connect: \(peripheral)") // Copilot
         print("central did connect \(peripheral)")
-
-        // Copilot
-        guard let device = connectedDevices[peripheral.identifier.uuidString] as? ConnectedBLEDevice else {
-            sendLogToDart("Connected peripheral not found or not a BLE device.")
-            return
-        }
-
-        // Copilot
-        device.setupBLE(stream: setupStreamHandler)
+        (connectedDevices[peripheral.identifier.uuidString] as! ConnectedBLEDevice).setupBLE(stream: setupStreamHandler)
     }
     
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
