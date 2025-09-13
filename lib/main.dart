@@ -125,6 +125,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 style: TextStyle(fontSize: 16),
               ),
             ),
+            // Body of screen
             Expanded(
               child: connectedDevice == null
               ? Column(
@@ -218,9 +219,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       },
                     ),
                   ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SongListScreen()),
+                      );
+                    },
+                    child: Text("Next"),
+                  ),
                 ],
               ),
             ),
+            // Output log
             Container(
               height: 150,
               color: Colors.black,
@@ -240,6 +251,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class SongListScreen extends StatelessWidget {
+  final List<String> songs = [
+    "Prelude in C",
+    "Moonlight Sonata",
+    "Canon in D",
+    "Clair de Lune",
+    "River Flows in You"
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Select a Song")),
+      body: ListView.builder(
+        itemCount: songs.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(songs[index]),
+            onTap: () {
+              // log("Selected song: ${songs[index]}"); - TODO add this back??
+              // Navigate or load MIDI file here
+            },
+          );
+        },
       ),
     );
   }
