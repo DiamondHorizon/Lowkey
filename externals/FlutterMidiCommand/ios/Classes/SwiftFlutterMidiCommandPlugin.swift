@@ -1644,6 +1644,16 @@ class ConnectedOwnVirtualDevice : ConnectedVirtualOrNativeDevice {
 class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
     var peripheral:CBPeripheral
     var characteristic:CBCharacteristic?
+
+    // Copilot
+    var channel: FlutterMethodChannel?
+
+    // Copilot
+    func sendLogToDart(_ message: String) {
+        DispatchQueue.main.async {
+            self.channel?.invokeMethod("logFromNative", arguments: message)
+        }
+    }
     
     // BLE MIDI parsing
     enum BLE_HANDLER_STATE
