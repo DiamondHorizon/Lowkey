@@ -1825,14 +1825,37 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
     
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         print("perif didDiscoverServices  \(String(describing: peripheral.services))")
-        for service:CBService in peripheral.services! {
-            peripheral.discoverCharacteristics(nil, for: service)
+        
+        // Copilot
+        guard error == nil else {
+            sendLogToDart("Error discovering services: \(error!.localizedDescription)")
+            return
+        }
+
+        // Copilot
+        for service in peripheral.services ?? [] {
+            if service.uuid == CBUUID(string: "03B80E5A-EDE8-4B33-A751-6CE34EC4C700") {
+                sendLogToDart("MIDI service discovered. Discovering characteristics...")
+                peripheral.discoverCharacteristics(nil, for: service)
+            }
         }
     }
     
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        // Copilot
+        guard error == nil else {
+            sendLogToDart("Error discovering characteristics: \(error!.localizedDescription)")
+            return
+        }
+
+        // Confirm this is the BLE MIDI service - Copilot
+        if service.uuid.uuidString != "03B80E5A-EDE8-4B33-A751-6CE34EC4C700" {
+            sendLogToDart("Service UUID does not match BLE MIDI spec.")
+            return
+        }
+
         print("perif didDiscoverCharacteristicsFor  \(String(describing: service.characteristics))")
-        for characteristic:CBCharacteristic in service.characteristics! {
+        for characteristic in service.characteristics ?? [] { // Copilot
             if characteristic.uuid.uuidString == "7772E5DB-3868-4112-A1A9-F2669D106BF3" {
                 self.characteristic = characteristic
                 peripheral.setNotifyValue(true, for: characteristic)
@@ -1851,6 +1874,7 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
             }
         }
         
+        // If we reach here, MIDI characteristic wasn't found
         if let res = connectResult {
             res(FlutterError.init(code: "BLEERROR", message: "Did not discover MIDI characteristics", details: id))
         }
