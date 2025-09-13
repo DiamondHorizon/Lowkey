@@ -996,7 +996,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
 
         // Copilot
         device.setupBLE(stream: setupStreamHandler)
-        channel?.invokeMethod("coreMidiDeviceReady", arguments: ["name": peripheral.name ?? "Unnamed"])
     }
     
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -1645,6 +1644,9 @@ class ConnectedOwnVirtualDevice : ConnectedVirtualOrNativeDevice {
 class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
     var peripheral:CBPeripheral
     var characteristic:CBCharacteristic?
+
+    // Copilot
+    var channel: FlutterMethodChannel?
     
     // BLE MIDI parsing
     enum BLE_HANDLER_STATE
@@ -1840,6 +1842,7 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
                 print("set up characteristic for device")
                 DispatchQueue.main.async {
                     self.setupStream?.send(data: "deviceConnected")
+                    self.channel?.invokeMethod("coreMidiDeviceReady", arguments: ["name": peripheral.name ?? "Unnamed"])
                 }
                 
                 if let res = connectResult {
