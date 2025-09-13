@@ -197,7 +197,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
         if(manager == nil){
             // manager = CBCentralManager.init(delegate: self, queue: DispatchQueue.global(qos: .userInteractive))
             manager = CBCentralManager(delegate: self, queue: nil) // Copilot
-            sendLogToDart("CBCentralManager initialized on main queue") // Copilot
             
             updateBluetoothState(data: getBluetoothCentralStateAsString())
         }
@@ -225,7 +224,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         // Copilot
-        sendLogToDart("Swift: handle received method call: \(call.method)")
         if call.method == "connectToBlePeripheral" {
             if let identifier = call.arguments as? String {
                 connectToBlePeripheral(identifier: identifier)
@@ -916,7 +914,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     
     // Central
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        sendLogToDart("CBCentralManager state updated: \(central.state.rawValue)") // Copilot
         print("central did update state \(getBluetoothCentralStateAsString())")
         updateBluetoothState(data: getBluetoothCentralStateAsString());
     }
@@ -942,33 +939,26 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
     }
 
     // Copilot
-    func connectToBlePeripheral(identifier: String) {
-        self.sendLogToDart("Swift: connectToBlePeripheral called with identifier: \(identifier)")
-        
+    func connectToBlePeripheral(identifier: String) {        
         guard manager != nil else {
-            self.sendLogToDart("CBCentralManager is nil—cannot connect.")
             return
         }
         
         guard let peripheral = discoveredPeripherals[identifier] else {
-            self.sendLogToDart("Peripheral not found for identifier: \(identifier)")
             return
         }
         
         guard manager.state == .poweredOn else {
-            self.sendLogToDart("CBCentralManager not powered on—state: \(manager.state.rawValue)")
             return
         }
         
         guard peripheral.state == .disconnected else {
-            self.sendLogToDart("Peripheral is already connecting or connected—state: \(peripheral.state.rawValue)")
             return
         }
         
         DispatchQueue.main.async {
             self.sendLogToDart("Dispatching connect call...")
             peripheral.delegate = self
-            self.sendLogToDart("Peripheral state before connect: \(peripheral.state.rawValue)")
             if self.connectedDevices[identifier] == nil {
                 self.connectedDevices[identifier] = ConnectedBLEDevice(
                     id: identifier,
