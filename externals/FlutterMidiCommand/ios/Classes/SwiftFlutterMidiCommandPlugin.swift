@@ -942,30 +942,48 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
 
     // Copilot
     func connectToBlePeripheral(identifier: String) {
-        sendLogToDart("Swift: connectToBlePeripheral called with identifier: \(identifier)")
+        self.sendLogToDart("Swift: connectToBlePeripheral called with identifier: \(identifier)")
         
         guard manager != nil else {
-            sendLogToDart("CBCentralManager is nil—cannot connect.")
+            self.sendLogToDart("CBCentralManager is nil—cannot connect.")
             return
         }
         
         guard let peripheral = discoveredPeripherals[identifier] else {
-            sendLogToDart("Peripheral not found for identifier: \(identifier)")
+            self.sendLogToDart("Peripheral not found for identifier: \(identifier)")
             return
         }
         
         guard manager.state == .poweredOn else {
-            sendLogToDart("CBCentralManager not powered on—state: \(manager.state.rawValue)")
+            self.sendLogToDart("CBCentralManager not powered on—state: \(manager.state.rawValue)")
             return
         }
         
-        peripheral.delegate = self
+        guard peripheral.state == .disconnected else {
+            self.sendLogToDart("Peripheral is already connecting or connected—state: \(peripheral.state.rawValue)")
+            return
+        }
         
         DispatchQueue.main.async {
             self.sendLogToDart("Dispatching connect call...")
             peripheral.delegate = self
+            self.sendLogToDart("Peripheral debug info:")
+            self.sendLogToDart("  Name: \(peripheral.name ?? "Unnamed")")
+            self.sendLogToDart("  Identifier: \(peripheral.identifier.uuidString)")
+            self.sendLogToDart("  State: \(peripheral.state.rawValue)")
+            self.sendLogToDart("  Is connected: \(peripheral.state == .connected)")
             self.manager.connect(peripheral, options: nil)
             self.sendLogToDart("Connect call dispatched.")
+        }
+    }
+
+    // Copilot
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        sendLogToDart("CBCentralManager state updated: \(central.state.rawValue)")
+        
+        if central.state == .poweredOn {
+            // Safe to scan or connect now
+            startScanning()
         }
     }
     
