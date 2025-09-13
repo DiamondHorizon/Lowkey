@@ -40,7 +40,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         log("[Native] $message");
       } else if (call.method == "coreMidiDeviceReady") {
         final name = call.arguments["name"];
-        connectToDevice(name);
+        log("CoreMIDI device ready: $name");
+
+        final devices = await midiCommand.devices;
+        MidiDevice? match;
+        if (devices != null) {
+          try {
+            match = devices.firstWhere((d) => d.name == name);
+          } catch (_) {
+            match = null;
+          }
+        } else {
+          log("Device list is null.");
+        }
+
+
+        if (match != null) {
+          log("Auto-connecting to CoreMIDI device: ${match.name}");
+          connectToDevice(match);
+        } else {
+          log("CoreMIDI device '$name' not found in device list.");
+        }
       }
     });
     WidgetsBinding.instance.addObserver(this);
