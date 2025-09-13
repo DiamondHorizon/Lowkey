@@ -973,7 +973,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
                 self.connectedDevices[identifier] = ConnectedBLEDevice(
                     id: identifier,
                     type: "BLE",
-                    streamHandler: rxStreamHandler,
+                    streamHandler: self.rxStreamHandler,
                     result: nil,
                     peripheral: peripheral,
                     ports: nil
