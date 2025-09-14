@@ -64,7 +64,7 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
         } else {
           log("Device list is null.");
         }
-        log("Promoted to CoreMIDI: ${match.name}");
+        log("Promoted to CoreMIDI");
 
         if (match != null) {
           log("Auto-connecting to CoreMIDI device: ${match.name}");
