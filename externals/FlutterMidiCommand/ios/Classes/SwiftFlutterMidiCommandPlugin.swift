@@ -357,7 +357,7 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
         
         if type == "BLE" {
             if let periph = discoveredDevices.filter({ (p) -> Bool in p.identifier.uuidString == deviceId }).first {
-                let device = ConnectedBLEDevice(id: deviceId, type: type, streamHandler: rxStreamHandler, result:ongoingConnections[deviceId], peripheral: periph, ports:ports)
+                let device = ConnectedBLEDevice(id: deviceId, type: type, streamHandler: rxStreamHandler, result:ongoingConnections[deviceId], peripheral: periph, ports:ports, channel: channel)
                 connectedDevices[deviceId] = device
                 manager.stopScan()
                 manager.connect(periph, options: nil)
@@ -1663,10 +1663,11 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
     var setupStream : StreamHandler?
     var connectResult : FlutterResult?
     
-    init(id:String, type:String, streamHandler:StreamHandler, result:FlutterResult?, peripheral:CBPeripheral, ports:[Port]?) {
+    init(id:String, type:String, streamHandler:StreamHandler, result:FlutterResult?, peripheral:CBPeripheral, ports:[Port]?, channel: FlutterMethodChannel?) {
         self.peripheral = peripheral
         self.connectResult = result
         super.init(id: id, type: type, streamHandler: streamHandler)
+        self.channel = channel
     }
     
     func setupBLE(stream: StreamHandler) {
@@ -1830,7 +1831,12 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
                 print("set up characteristic for device")
                 DispatchQueue.main.async {
                     self.setupStream?.send(data: "deviceConnected")
-                    self.channel?.invokeMethod("coreMidiDeviceReady", arguments: ["name": peripheral.name ?? "Unnamed"])
+                    
+                    // Copilot
+                    DispatchQueue.main.async {
+                        self.channel?.invokeMethod("logFromNative", arguments: "didDiscoverCharacteristicsFor")
+                    }
+                    self.channel?.invokeMethod("coreMidiDeviceReady", arguments: ["name": peripheral.name ?? "Unnamed"]) // Copilot
                 }
                 
                 if let res = connectResult {
