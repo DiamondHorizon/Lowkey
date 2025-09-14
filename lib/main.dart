@@ -9,18 +9,23 @@ void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MIDI Input Viewer',
+      title: 'Lowkey',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: MidiInputScreen(), // Your main widget
+      home: MidiInputScreen(), // Main widget
     );
-  }
+  } 
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class MidiInputScreen extends StatefulWidget {
+  @override
+  _MidiInputScreenState createState() => _MidiInputScreenState();
+}
+
+class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingObserver {
   // Instance Variables
   List<MidiDevice> devices = [];
   MidiDevice? connectedDevice;
@@ -83,7 +88,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     listenForMidi();
   }
 
-  @override
+  void connectToDevice(MidiDevice device) {
+    midiCommand.connectToDevice(device);
+    setState(() {
+      connectedDevice = device;
+      midiMessages.clear(); // Clear old messages when switching devices
+    });
+  }
+
+  void disconnectDevice() {
+    if (connectedDevice != null) {
+      midiCommand.disconnectDevice(connectedDevice!);
+      setState(() {
+        connectedDevice = null;
+        midiMessages.clear();
+      });
+    }
+  }
+
+    @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       startScanning();
@@ -105,24 +128,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
-  void connectToDevice(MidiDevice device) {
-    midiCommand.connectToDevice(device);
-    setState(() {
-      connectedDevice = device;
-      midiMessages.clear(); // Clear old messages when switching devices
-    });
-  }
-
-  void disconnectDevice() {
-    if (connectedDevice != null) {
-      midiCommand.disconnectDevice(connectedDevice!);
-      setState(() {
-        connectedDevice = null;
-        midiMessages.clear();
-      });
-    }
-  }
-
   void listenForMidi() {
     midiCommand.onMidiDataReceived?.listen((MidiPacket packet) {
       final data = packet.data;
@@ -134,14 +139,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       });
     });
   }
-}
 
-class MidiInputScreen extends StatefulWidget {
-  @override
-  _MidiInputScreenState createState() => _MidiInputScreenState();
-}
-
-class _MidiInputScreenState extends State<MidiInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
