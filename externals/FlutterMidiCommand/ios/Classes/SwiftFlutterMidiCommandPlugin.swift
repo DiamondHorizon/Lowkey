@@ -1834,7 +1834,6 @@ class ConnectedBLEDevice : ConnectedDevice, CBPeripheralDelegate {
                     self.setupStream?.send(data: "deviceConnected")
                     
                     // Copilot
-                    self.channel?.invokeMethod("logFromNative", arguments: "didDiscoverCharacteristicsFor")
                     self.channel?.invokeMethod("coreMidiDeviceReady", arguments: ["name": peripheral.name ?? "Unnamed"]) // Copilot
                 }
                 

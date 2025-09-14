@@ -31,6 +31,7 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
   List<String> midiMessages = [];
   List<Map<String, dynamic>> bleDevices = [];
   List<String> debugLog = [];
+  bool isConnecting = false;
 
   void log(String message) {
     final now = DateTime.now().toIso8601String();
@@ -50,7 +51,6 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
         log("[Native] $message");
       } else if (call.method == "coreMidiDeviceReady") {
         final name = call.arguments["name"];
-        log("CoreMIDI device ready: $name");
 
         final devices = await midiCommand.devices;
         MidiDevice? match;
@@ -63,10 +63,12 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
         } else {
           log("Device list is null.");
         }
-        log("Promoted to CoreMIDI");
 
         if (match != null) {
           log("Auto-connecting to CoreMIDI device: ${match.name}");
+          setState(() {
+            isConnecting = false;
+          });
           connectToDevice(match);
         } else {
           log("CoreMIDI device '$name' not found in device list.");
@@ -157,6 +159,7 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
           // Body of screen
           Expanded(
             child: connectedDevice == null
+            // Midi devices screen
             ? Column(
                 children: [
                   ElevatedButton(
@@ -194,39 +197,30 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
                           title: Text(device['name']),
                           subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
                           onTap: () async {
+                            setState(() {
+                              isConnecting = true;
+                            });
                             await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
                                 .invokeMethod('connectToBlePeripheral', device['identifier']);
-                            log("Attempted manual BLE connection to ${device['name']}");
-                            // await Future.delayed(Duration(seconds: 3));
-
-                            // final updatedDevices = await midiCommand.devices;
-
-                            // if (updatedDevices != null && updatedDevices.isNotEmpty) {
-                            //   log("Updated CoreMIDI devices: ${updatedDevices.map((d) => d.name).toList()}");
-
-                            //   MidiDevice? match;
-                            //   try {
-                            //     match = updatedDevices.firstWhere((d) => d.name == device['name']);
-                            //   } catch (_) {
-                            //     match = null;
-                            //   }
-
-                            //   if (match != null) {
-                            //     log("Promoted to CoreMIDI: ${match.name}");
-                            //     connectToDevice(match);
-                            //   } else {
-                            //     log("Device not promoted to CoreMIDI yet.");
-                            //   }
-                            // } else {
-                            //   log("No CoreMIDI devices found.");
-                            // }
                           },
                         )),
                       ],
                     ),
                   ),
+                if (isConnecting)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 8),
+                        Text("Connecting to BLE device...", style: TextStyle(fontSize: 14)),
+                      ],
+                    ),
+                  ),
                 ],
               )
+            // Midi input screen
             : Column(
               children: [
                 // Back to device list button
