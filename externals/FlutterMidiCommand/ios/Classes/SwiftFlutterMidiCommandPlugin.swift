@@ -957,7 +957,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
         }
         
         DispatchQueue.main.async {
-            self.sendLogToDart("Dispatching connect call...")
             peripheral.delegate = self
             if self.connectedDevices[identifier] == nil {
                 self.connectedDevices[identifier] = ConnectedBLEDevice(
@@ -970,7 +969,6 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
                 )
             }
             self.manager.connect(peripheral, options: nil)
-            self.sendLogToDart("Connect call dispatched.")
         }
     }
     

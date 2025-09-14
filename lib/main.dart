@@ -64,7 +64,7 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
         } else {
           log("Device list is null.");
         }
-
+        log("Promoted to CoreMIDI: ${match.name}");
 
         if (match != null) {
           log("Auto-connecting to CoreMIDI device: ${match.name}");
@@ -195,7 +195,6 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
                           title: Text(device['name']),
                           subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
                           onTap: () async {
-                            log("Tapped raw BLE device: ${device['name']} (${device['identifier']})");
                             await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
                                 .invokeMethod('connectToBlePeripheral', device['identifier']);
                             log("Attempted manual BLE connection to ${device['name']}");
@@ -254,7 +253,6 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
                 // Next button
                 ElevatedButton(
                   onPressed: () {
-                    log("Next button tapped");
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => SongListScreen()),
