@@ -965,7 +965,8 @@ public class SwiftFlutterMidiCommandPlugin: NSObject, CBCentralManagerDelegate, 
                     streamHandler: self.rxStreamHandler,
                     result: nil,
                     peripheral: peripheral,
-                    ports: nil
+                    ports: nil,
+                    channel: channel
                 )
             }
             self.manager.connect(peripheral, options: nil)
