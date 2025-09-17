@@ -44,7 +44,7 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
   @override
   void initState() {
     super.initState();
-    log("Starting");
+    log("Starting 0.0.30");
     MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
     .setMethodCallHandler((call) async {
       if (call.method == 'logFromNative') {
