@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_midi_command/flutter_midi_command.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
 
 final midiCommand = MidiCommand();
 
@@ -107,7 +108,7 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
     }
   }
 
-    @override
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       startScanning();
@@ -159,68 +160,73 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
           // Body of screen
           Expanded(
             child: connectedDevice == null
-            // Midi devices screen
-            ? Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: () async {
-                      midiCommand.stopScanningForBluetoothDevices();
-                      midiCommand.startBluetoothCentral();
-                      midiCommand.startScanningForBluetoothDevices();
-
-                      await Future.delayed(Duration(seconds: 2));
-
-                      final foundDevices = await midiCommand.devices;
-                      if (foundDevices != null && foundDevices.isNotEmpty) {
-                        log("Found devices: ${foundDevices.map((d) => d.name).toList()}");
-                        setState(() {
-                          devices = foundDevices;
-                        });
-                      } else {
-                        log("No devices found.");
-                      }
-                    },
-                    child: Text("Scan for MIDI Devices"),
-                  ),
-                  Expanded(
-                    child: ListView(
+              ? Stack(
+                  children: [
+                    Column(
                       children: [
-                        Text("CoreMIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ...devices.map((device) => ListTile(
-                              title: Text(device.name),
-                              subtitle: Text(device.type),
-                              onTap: () => connectToDevice(device),
-                            )),
-                        Divider(),
-                        Text("Raw BLE MIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ...bleDevices.map((device) => ListTile(
-                          title: Text(device['name']),
-                          subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
-                          onTap: () async {
-                            setState(() {
-                              isConnecting = true;
-                            });
-                            await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
-                                .invokeMethod('connectToBlePeripheral', device['identifier']);
+                        ElevatedButton(
+                          onPressed: () async {
+                            midiCommand.stopScanningForBluetoothDevices();
+                            midiCommand.startBluetoothCentral();
+                            midiCommand.startScanningForBluetoothDevices();
+
+                            await Future.delayed(Duration(seconds: 2));
+
+                            final foundDevices = await midiCommand.devices;
+                            if (foundDevices != null && foundDevices.isNotEmpty) {
+                              log("Found devices: ${foundDevices.map((d) => d.name).toList()}");
+                              setState(() {
+                                devices = foundDevices;
+                              });
+                            } else {
+                              log("No devices found.");
+                            }
                           },
-                        )),
+                          child: Text("Scan for MIDI Devices"),
+                        ),
+                        Expanded(
+                          child: ListView(
+                            children: [
+                              Text("CoreMIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ...devices.map((device) => ListTile(
+                                    title: Text(device.name),
+                                    subtitle: Text(device.type),
+                                    onTap: () => connectToDevice(device),
+                                  )),
+                              Divider(),
+                              Text("Raw BLE MIDI Devices:", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ...bleDevices.map((device) => ListTile(
+                                    title: Text(device['name']),
+                                    subtitle: Text("BLE Peripheral (RSSI: ${device['rssi']})"),
+                                    onTap: () async {
+                                      setState(() {
+                                        isConnecting = true;
+                                      });
+                                      await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
+                                          .invokeMethod('connectToBlePeripheral', device['identifier']);
+                                    },
+                                  )),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                if (isConnecting)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 8),
-                        Text("Connecting to BLE device...", style: TextStyle(fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            // Midi input screen
+                    if (isConnecting)
+                      Container(
+                        color: Colors.black.withOpacity(0.5),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 8),
+                              Text("Connecting to BLE device...", style: TextStyle(fontSize: 14, color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                )
             : Column(
               children: [
                 // Back to device list button
@@ -281,29 +287,76 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
 }
 
 class SongListScreen extends StatelessWidget {
-  final List<String> songs = [
-    "Prelude in C",
-    "Moonlight Sonata",
-    "Canon in D",
-    "Clair de Lune",
-    "River Flows in You"
-  ];
+  Future<List<Map<String, String>>> loadSongManifest() async {
+    final raw = await rootBundle.loadString('assets/songs/manifest.json');
+    final List<dynamic> parsed = jsonDecode(raw);
+    return parsed.cast<Map<String, String>>();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Select a Song")),
-      body: ListView.builder(
-        itemCount: songs.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(songs[index]),
-            onTap: () {
-              // log("Selected song: ${songs[index]}"); - TODO add this back??
-              // Navigate or load MIDI file here
+      body: FutureBuilder<List<Map<String, String>>>(
+        future: loadSongManifest(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          final songs = snapshot.data!;
+          return ListView.builder(
+            itemCount: songs.length,
+            itemBuilder: (context, index) {
+              final song = songs[index];
+              return ListTile(
+                title: Text(song['title'] ?? 'Untitled'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SongTrainerScreen(filename: song['filename']!),
+                    ),
+                  );
+                },
+              );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class SongTrainerScreen extends StatefulWidget {
+  final String filename;
+
+  SongTrainerScreen({required this.filename});
+
+  @override
+  _SongTrainerScreenState createState() => _SongTrainerScreenState();
+}
+
+
+class _SongTrainerScreenState extends State<SongTrainerScreen> {
+  Future<void> playSong() async {
+    final bytes = await rootBundle.load('assets/songs/${widget.filename}');
+    final midiData = bytes.buffer.asUint8List();
+
+    await MethodChannel('your_channel').invokeMethod('playMidiFile', {
+      'bytes': midiData,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Playing: ${widget.filename}")),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: playSong,
+          child: Text("Play"),
+        ),
       ),
     );
   }
