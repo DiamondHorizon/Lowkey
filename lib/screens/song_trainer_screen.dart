@@ -7,6 +7,7 @@ import '../services/midi_parser.dart';
 import '../widgets/note_display.dart';
 import '../widgets/wait_mode_toggle.dart';
 import '../services/midi_service.dart';
+import '../widgets/piano_keyboard.dart';
 
 class SongTrainerScreen extends StatefulWidget {
   final String filename;
@@ -24,6 +25,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   String selectedHand = 'both';
   List<int> currentNotes = [];
   bool waitMode = false;
+  Map<int, String> handMap = {};
 
   Future<void> playSong() async {
     final bytes = await rootBundle.load('assets/songs/${widget.filename}');
@@ -32,6 +34,10 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     final midiFile = parse(midiData);
     final allNotes = extractNoteInstructions(midiFile, tempoFactor);
     final filteredNotes = filterByHand(allNotes, selectedHand);
+
+    handMap = {
+      for (var note in filteredNotes) note.noteNumber: note.hand,
+    };
 
     final startTime = DateTime.now().millisecondsSinceEpoch;
 
@@ -92,6 +98,14 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
               child: Text("Play"),
             ),
             NoteDisplay(activeNotes: currentNotes),
+            PianoKeyboard(
+              activeNotes: currentNotes,
+              expectedNote: waitMode ? currentNotes.firstOrNull : null,
+              handMap: handMap,
+              onKeyPressed: (note) {
+                // Optional: simulate input
+              },
+            ),
           ],
         ),
       ),
