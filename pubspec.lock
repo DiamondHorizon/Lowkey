@@ -65,6 +65,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dart_midi:
+    dependency: "direct main"
+    description:
+      path: "externals/dart_midi"
+      relative: true
+    source: path
+    version: "1.0.1"
   dbus:
     dependency: transitive
     description:
