@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 class PianoKeyboard extends StatelessWidget {
   final List<int> activeNotes;
-  final int? expectedNote;
+  final List<int> expectedNotes;
   final Map<int, String>? handMap;
   final void Function(int note)? onKeyPressed;
 
   const PianoKeyboard({
     required this.activeNotes,
-    this.expectedNote,
+    required this.expectedNotes,
     this.handMap,
     this.onKeyPressed,
     Key? key,
@@ -44,7 +44,7 @@ class PianoKeyboard extends StatelessWidget {
             children: whiteNotes.map((note) {
               final hand = handMap?[note];
               final isActive = activeNotes.contains(note);
-              final isExpected = note == expectedNote;
+              final isExpected = note == expectedNotes;
 
               Color baseColor = hand == 'left'
                   ? Colors.blue.shade200
@@ -81,7 +81,7 @@ class PianoKeyboard extends StatelessWidget {
 
             final hand = handMap?[note];
             final isActive = activeNotes.contains(note);
-            final isExpected = note == expectedNote;
+            final isExpected = note == expectedNotes;
 
             Color baseColor = hand == 'left'
                 ? Colors.blue.shade700

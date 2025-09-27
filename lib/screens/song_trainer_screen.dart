@@ -83,31 +83,42 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
     final startTime = DateTime.now().millisecondsSinceEpoch;
 
+    final notesByTime = <int, List<NoteInstruction>>{}; 
     for (final note in filteredNotes) {
+      notesByTime.putIfAbsent(note.timeMs, () => []).add(note);
+    }
+
+    for (final timeMs in notesByTime.keys.toList()..sort()) {
+      final chord = notesByTime[timeMs]!;
       final now = DateTime.now().millisecondsSinceEpoch;
       final elapsed = now - startTime;
-      final waitTime = note.timeMs - elapsed;
+      final waitTime = timeMs - elapsed;
 
       if (waitTime > 0 && !waitMode) {
         await Future.delayed(Duration(milliseconds: waitTime));
       }
 
-      if (waitMode && note.isNoteOn) {
+      final chordNotes = chord.where((n) => n.isNoteOn).map((n) => n.noteNumber).toSet();
+
+      if (waitMode && chordNotes.isNotEmpty) {
         setState(() {
-          currentNotes = [note.noteNumber];
+          currentNotes.clear();
+          currentNotes.addAll(chordNotes);
         });
 
-        await midiService.waitForUserInput(note.noteNumber);
+        await midiService.waitForChord(chordNotes); // ⏳ Wait for all notes
 
         setState(() {
           currentNotes = [];
         });
       } else {
         setState(() {
-          if (note.isNoteOn) {
-            currentNotes.add(note.noteNumber);
-          } else {
-            currentNotes.remove(note.noteNumber);
+          for (final note in chord) {
+            if (note.isNoteOn) {
+              currentNotes.add(note.noteNumber);
+            } else {
+              currentNotes.remove(note.noteNumber);
+            }
           }
         });
       }
@@ -142,11 +153,11 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
             NoteDisplay(activeNotes: currentNotes),
             PianoKeyboard(
               activeNotes: currentNotes,
-              expectedNote: waitMode ? currentNotes.firstOrNull : null,
+              expectedNotes: waitMode ? currentNotes : [],
               handMap: handMap,
               onKeyPressed: (note) {
-                // Optional: simulate input
-              },
+                midiService.registerNotePressed(note);
+              }
             ),
           ],
         ),

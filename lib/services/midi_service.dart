@@ -6,6 +6,10 @@ class MidiService {
   factory MidiService() => _instance;
   MidiService._internal();
   
+  Set<int> _pressedNotes = {};
+  Set<int> _requiredNotes = {};
+  Completer<void>? _chordCompleter;
+  
   static final MidiCommand command = MidiCommand();
 
   Future<void> waitForUserInput(int expectedNote) async {
@@ -25,5 +29,23 @@ class MidiService {
     });
 
     return completer.future;
+  }
+
+  void registerNotePressed(int note) {
+    _pressedNotes.add(note);
+    if (_chordCompleter != null &&
+        _pressedNotes.containsAll(_requiredNotes)) {
+      _chordCompleter!.complete();
+      _chordCompleter = null;
+      _pressedNotes.clear();
+      _requiredNotes.clear();
+    }
+  }
+
+  Future<void> waitForChord(Set<int> requiredNotes) {
+    _requiredNotes = requiredNotes;
+    _pressedNotes.clear();
+    _chordCompleter = Completer<void>();
+    return _chordCompleter!.future;
   }
 }
