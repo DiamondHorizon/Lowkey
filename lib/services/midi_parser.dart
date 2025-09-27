@@ -6,7 +6,7 @@ MidiFile parse(Uint8List midiData) {
   return parser.parseMidiFromBuffer(midiData);
 }
 
-class NoteInstruction {
+class MidiNoteInstruction {
   final int noteNumber;
   final int channel;
   final bool isNoteOn;
@@ -14,7 +14,7 @@ class NoteInstruction {
   final int timeMs;
   final String hand;
 
-  NoteInstruction({
+  MidiNoteInstruction({
     required this.noteNumber,
     required this.channel,
     required this.isNoteOn,
@@ -24,12 +24,12 @@ class NoteInstruction {
   });
 }
 
-List<NoteInstruction> extractNoteInstructions(MidiFile midiFile, double tempoFactor) {
+List<MidiNoteInstruction> extractNoteInstructions(MidiFile midiFile, double tempoFactor) {
   final ticksPerBeat = midiFile.header.ticksPerBeat ?? 480;
   final microsecondsPerBeat = 500000;
 
   int cumulativeTicks = 0;
-  final instructions = <NoteInstruction>[];
+  final instructions = <MidiNoteInstruction>[];
 
   final events = midiFile.tracks.expand((track) => track).toList();
 
@@ -40,7 +40,7 @@ List<NoteInstruction> extractNoteInstructions(MidiFile midiFile, double tempoFac
       final timeMs = ((cumulativeTicks / ticksPerBeat) * (microsecondsPerBeat / 1000)) / tempoFactor;
       final hand = (event.channel == 1) ? 'left' : (event.channel == 2) ? 'right' : 'unknown';
 
-      instructions.add(NoteInstruction(
+      instructions.add(MidiNoteInstruction(
         noteNumber: event.noteNumber,
         channel: event.channel,
         isNoteOn: true,
@@ -54,7 +54,7 @@ List<NoteInstruction> extractNoteInstructions(MidiFile midiFile, double tempoFac
       final timeMs = ((cumulativeTicks / ticksPerBeat) * (microsecondsPerBeat / 1000)) / tempoFactor;
       final hand = (event.channel == 1) ? 'left' : (event.channel == 2) ? 'right' : 'unknown';
 
-      instructions.add(NoteInstruction(
+      instructions.add(MidiNoteInstruction(
         noteNumber: event.noteNumber,
         channel: event.channel,
         isNoteOn: false,
@@ -68,13 +68,14 @@ List<NoteInstruction> extractNoteInstructions(MidiFile midiFile, double tempoFac
   return instructions;
 }
 
-List<NoteInstruction> filterByHand(List<NoteInstruction> notes, String hand) {
+List<MidiNoteInstruction> filterMidiByHand(List<MidiNoteInstruction> notes, String hand) {
   if (hand == 'both') return notes;
   return notes.where((note) => note.hand == hand).toList();
 }
 
-Map<int, List<NoteInstruction>> groupByTime(List<NoteInstruction> notes) {
-  final map = <int, List<NoteInstruction>>{};
+
+Map<int, List<MidiNoteInstruction>> groupByTime(List<MidiNoteInstruction> notes) {
+  final map = <int, List<MidiNoteInstruction>>{};
   for (final note in notes) {
     map.putIfAbsent(note.timeMs, () => []).add(note);
   }

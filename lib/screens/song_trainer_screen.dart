@@ -1,13 +1,14 @@
-import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/tempo_slider.dart';
 import '../widgets/hand_toggle.dart';
-import '../services/midi_parser.dart';
+// import '../services/midi_parser.dart';
 import '../widgets/note_display.dart';
 import '../widgets/wait_mode_toggle.dart';
 import '../services/midi_service.dart';
 import '../widgets/piano_keyboard.dart';
+import '../services/json_parser.dart';
 
 class SongTrainerScreen extends StatefulWidget {
   final String filename;
@@ -27,12 +28,53 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   bool waitMode = false;
   Map<int, String> handMap = {};
 
-  Future<void> playSong() async {
-    final bytes = await rootBundle.load('assets/songs/${widget.filename}');
-    final midiData = bytes.buffer.asUint8List();
+  // Future<void> playMidiSong() async {
+  //   final bytes = await rootBundle.load('assets/songs/${widget.filename}');
+  //   final midiData = bytes.buffer.asUint8List();
 
-    final midiFile = parse(midiData);
-    final allNotes = extractNoteInstructions(midiFile, tempoFactor);
+  //   final midiFile = parse(midiData);
+  //   final allNotes = extractNoteInstructions(midiFile, tempoFactor);
+  //   final filteredNotes = filterByHand(allNotes, selectedHand);
+
+  //   handMap = {
+  //     for (var note in filteredNotes) note.noteNumber: note.hand,
+  //   };
+
+  //   final startTime = DateTime.now().millisecondsSinceEpoch;
+
+  //   for (final note in filteredNotes) {
+  //     final now = DateTime.now().millisecondsSinceEpoch;
+  //     final elapsed = now - startTime;
+  //     final waitTime = note.timeMs - elapsed;
+
+  //     if (waitTime > 0 && !waitMode) {
+  //       await Future.delayed(Duration(milliseconds: waitTime));
+  //     }
+
+  //     if (waitMode && note.isNoteOn) {
+  //       setState(() {
+  //         currentNotes = [note.noteNumber];
+  //       });
+
+  //       await midiService.waitForUserInput(note.noteNumber); // ⏳ Wait for correct input
+
+  //       setState(() {
+  //         currentNotes = [];
+  //       });
+  //     } else {
+  //       setState(() {
+  //         if (note.isNoteOn) {
+  //           currentNotes.add(note.noteNumber);
+  //         } else {
+  //           currentNotes.remove(note.noteNumber);
+  //         }
+  //       });
+  //     }
+  //   }
+  // }
+
+  Future<void> playSong() async {
+    final allNotes = await loadNoteInstructionsFromJson(widget.filename);
     final filteredNotes = filterByHand(allNotes, selectedHand);
 
     handMap = {
@@ -55,7 +97,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
           currentNotes = [note.noteNumber];
         });
 
-        await midiService.waitForUserInput(note.noteNumber); // ⏳ Wait for correct input
+        await midiService.waitForUserInput(note.noteNumber);
 
         setState(() {
           currentNotes = [];
