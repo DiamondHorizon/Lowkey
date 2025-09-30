@@ -1,14 +1,12 @@
-// import 'package:flutter/services.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/tempo_slider.dart';
-import '../widgets/hand_toggle.dart';
-// import '../services/midi_parser.dart';
-import '../widgets/note_display.dart';
-import '../widgets/wait_mode_toggle.dart';
-import '../services/midi_service.dart';
-import '../widgets/piano_keyboard.dart';
+import '../functions/pause_menu.dart';
 import '../services/json_parser.dart';
+// import '../services/midi_parser.dart';
+import '../services/midi_service.dart';
+import '../widgets/note_display.dart';
+import '../widgets/piano_keyboard.dart';
 
 class SongTrainerScreen extends StatefulWidget {
   final String filename;
@@ -27,6 +25,25 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   List<int> currentNotes = [];
   bool waitMode = false;
   Map<int, String> handMap = {};
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
+  }
+
 
   // Future<void> playMidiSong() async {
   //   final bytes = await rootBundle.load('assets/songs/${widget.filename}');
@@ -133,17 +150,20 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TempoSlider(
-              tempoFactor: tempoFactor,
-              onChanged: (value) => setState(() => tempoFactor = value),
-            ),
-            WaitModeToggle(
-              waitMode: waitMode,
-              onChanged: (value) => setState(() => waitMode = value),
-            ),
-            HandToggle(
-              selectedHand: selectedHand,
-              onChanged: (value) => setState(() => selectedHand = value),
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: Icon(Icons.pause),
+                onPressed: () => showPauseMenu(
+                  context: context,
+                  tempoFactor: tempoFactor,
+                  onTempoChanged: (value) => setState(() => tempoFactor = value),
+                  selectedHand: selectedHand,
+                  onHandChanged: (value) => setState(() => selectedHand = value),
+                  waitMode: waitMode,
+                  onWaitModeChanged: (value) => setState(() => waitMode = value),
+                ),
+              ),
             ),
             SizedBox(height: 16),
             ElevatedButton(
@@ -151,13 +171,17 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
               child: Text("Play"),
             ),
             NoteDisplay(activeNotes: currentNotes),
-            PianoKeyboard(
-              activeNotes: currentNotes,
-              expectedNotes: waitMode ? currentNotes : [],
-              handMap: handMap,
-              onKeyPressed: (note) {
-                midiService.registerNotePressed(note);
-              }
+            Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height * 0.25,
+              child: PianoKeyboard(
+                activeNotes: currentNotes,
+                expectedNotes: waitMode ? currentNotes : [],
+                handMap: handMap,
+                onKeyPressed: (note) {
+                  midiService.registerNotePressed(note);
+                },
+              ),
             ),
           ],
         ),

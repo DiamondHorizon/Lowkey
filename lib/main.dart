@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'themes/lowkey_theme.dart';
 import 'screens/midi_input_screen.dart';
 
 void main() {
@@ -11,7 +12,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Lowkey',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, // TODO: Make this adjustable
       home: MidiInputScreen(), // Main widget
     );
   } 
