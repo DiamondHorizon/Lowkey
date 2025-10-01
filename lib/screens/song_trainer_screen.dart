@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:wakelock/wakelock.dart';
 
 import '../functions/pause_menu.dart';
 import '../services/json_parser.dart';
@@ -33,10 +34,12 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    Wakelock.enable();
   }
 
   @override
   void dispose() {
+    Wakelock.disable();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -146,46 +149,50 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Playing: ${widget.songName}")),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: Icon(Icons.pause),
-                onPressed: () => showPauseMenu(
-                  context: context,
-                  tempoFactor: tempoFactor,
-                  onTempoChanged: (value) => setState(() => tempoFactor = value),
-                  selectedHand: selectedHand,
-                  onHandChanged: (value) => setState(() => selectedHand = value),
-                  waitMode: waitMode,
-                  onWaitModeChanged: (value) => setState(() => waitMode = value),
-                ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.topRight,
+            child: IconButton(
+              icon: Icon(Icons.pause),
+              onPressed: () => showPauseMenu(
+                context: context,
+                tempoFactor: tempoFactor,
+                onTempoChanged: (value) => setState(() => tempoFactor = value),
+                selectedHand: selectedHand,
+                onHandChanged: (value) => setState(() => selectedHand = value),
+                waitMode: waitMode,
+                onWaitModeChanged: (value) => setState(() => waitMode = value),
               ),
             ),
-            SizedBox(height: 16),
-            ElevatedButton(
+          ),
+          SizedBox(height: 16),
+          Center (
+            child: ElevatedButton(
               onPressed: playSong,
               child: Text("Play"),
             ),
-            NoteDisplay(activeNotes: currentNotes),
-            Container(
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height * 0.25,
-              child: PianoKeyboard(
-                activeNotes: currentNotes,
-                expectedNotes: waitMode ? currentNotes : [],
-                handMap: handMap,
-                onKeyPressed: (note) {
-                  midiService.registerNotePressed(note);
-                },
-              ),
+          ),
+          NoteDisplay(activeNotes: currentNotes),
+          SizedBox(
+            width: double.infinity,
+            height: MediaQuery.of(context).size.height * 0.25,
+            child: PianoKeyboard(
+              activeNotes: currentNotes,
+              expectedNotes: waitMode ? currentNotes : [],
+              handMap: handMap,
+              onKeyPressed: (note) {
+                midiService.registerNotePressed(note);
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
+
+// TODO: Change app icon, make it acutally sound like the song??, fix keyboard size, save settings for next time, add back arrow to song list when
+// hitting go to songs, fix color theme, keep it from falling asleep
+// Eventually: Falling notes, sheet music, 

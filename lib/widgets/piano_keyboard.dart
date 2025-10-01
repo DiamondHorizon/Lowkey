@@ -34,7 +34,7 @@ class PianoKeyboard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Width
-        final whiteKeyWidth = constraints.maxWidth / 88;
+        final whiteKeyWidth = constraints.maxWidth / whiteNotes.length;
         final blackKeyWidth = whiteKeyWidth * 0.65;
 
         // Height
@@ -65,16 +65,16 @@ class PianoKeyboard extends StatelessWidget {
                         : isActive
                             ? Colors.green
                             : baseColor;
-
-                    return GestureDetector(
-                      onTap: () => onKeyPressed?.call(note),
-                      child: AnimatedContainer(
-                        duration: Duration(milliseconds: 100),
-                        width: whiteKeyWidth,
-                        height: keyboardHeight,
-                        decoration: BoxDecoration(
-                          color: color,
-                          border: Border.all(color: Colors.grey),
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => onKeyPressed?.call(note),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 100),
+                          height: keyboardHeight,
+                          decoration: BoxDecoration(
+                            color: color,
+                            border: Border.all(color: Colors.grey),
+                          ),
                         ),
                       ),
                     );
