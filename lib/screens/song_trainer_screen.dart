@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../functions/pause_menu.dart';
 import '../services/json_parser.dart';
@@ -34,12 +34,12 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    Wakelock.enable();
+    WakelockPlus.enable();
   }
 
   @override
   void dispose() {
-    Wakelock.disable();
+    WakelockPlus.disable();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -193,6 +193,13 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   }
 }
 
-// TODO: Change app icon, make it acutally sound like the song??, fix keyboard size, save settings for next time, add back arrow to song list when
-// hitting go to songs, fix color theme, keep it from falling asleep
-// Eventually: Falling notes, sheet music, 
+// TODO: 
+// Change app icon, 
+// make it acutally sound like the song??, 
+// save settings for next time, 
+// add back arrow to song list when hitting go to songs, 
+// fix color theme
+
+// Eventually: 
+// Falling notes, 
+// sheet music, 
