@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../functions/pause_menu.dart';
 import '../services/json_parser.dart';
@@ -35,6 +36,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
       DeviceOrientation.landscapeRight,
     ]);
     WakelockPlus.enable();
+    loadSettings();
   }
 
   @override
@@ -47,6 +49,32 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     super.dispose();
   }
 
+  void loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      tempoFactor = prefs.getDouble('tempoFactor') ?? 1.0;
+      selectedHand = prefs.getString('selectedHand') ?? 'both';
+      waitMode = prefs.getBool('waitMode') ?? false;
+    });
+  }
+
+  void updateTempo(double value) async {
+    setState(() => tempoFactor = value);
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setDouble('tempoFactor', value);
+  }
+
+  void updateHand(String value) async {
+    setState(() => selectedHand = value);
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('selectedHand', value);
+  }
+
+  void updateWaitMode(bool value) async {
+    setState(() => waitMode = value);
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('waitMode', value);
+  }
 
   // Future<void> playMidiSong() async {
   //   final bytes = await rootBundle.load('assets/songs/${widget.filename}');
@@ -159,11 +187,11 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
               onPressed: () => showPauseMenu(
                 context: context,
                 tempoFactor: tempoFactor,
-                onTempoChanged: (value) => setState(() => tempoFactor = value),
+                onTempoChanged: updateTempo,
                 selectedHand: selectedHand,
-                onHandChanged: (value) => setState(() => selectedHand = value),
+                onHandChanged: updateHand,
                 waitMode: waitMode,
-                onWaitModeChanged: (value) => setState(() => waitMode = value),
+                onWaitModeChanged: updateWaitMode,
               ),
             ),
           ),
