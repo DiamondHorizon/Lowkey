@@ -223,7 +223,6 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
 // TODO: 
 // make it acutally sound like the song??, 
-// save settings for next time, 
 // add back arrow to song list when hitting go to songs, 
 // fix color theme
 

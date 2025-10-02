@@ -30,3 +30,5 @@ class MyApp extends StatelessWidget {
 //     '/trainer': (context) => SongTrainerScreen(filename: 'example.mid'),
 //   },
 // );
+
+// To update app icon: flutter pub run flutter_launcher_icons:main

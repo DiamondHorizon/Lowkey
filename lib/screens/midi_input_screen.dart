@@ -158,9 +158,11 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
                             icon: Icon(Icons.music_note),
                             label: Text("Go to Songs"),
                             onPressed: () {
-                              Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => SongListScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) => SongListScreen(),
+                                ),
                               );
                             },
                           ),
