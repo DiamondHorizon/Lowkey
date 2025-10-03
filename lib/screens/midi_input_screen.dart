@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_midi_command/flutter_midi_command.dart';
 
 import 'song_list_screen.dart';
+import '../controllers/color_theme_controller.dart';
 import '../services/midi_service.dart';
 
 final midiCommand = MidiService.command;
@@ -18,51 +19,11 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
   MidiDevice? connectedDevice;
   List<String> midiMessages = [];
   List<Map<String, dynamic>> bleDevices = [];
-  List<String> debugLog = [];
   bool isConnecting = false;
-
-  void log(String message) {
-    final now = DateTime.now().toIso8601String();
-    setState(() {
-      debugLog.insert(0, "[$now] $message");
-    });
-  }
 
   @override
   void initState() {
     super.initState();
-    log("Starting 0.4.1");
-    MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
-    .setMethodCallHandler((call) async {
-      if (call.method == 'logFromNative') {
-        final message = call.arguments as String;
-        log("[Native] $message");
-      } else if (call.method == "coreMidiDeviceReady") {
-        final name = call.arguments["name"];
-
-        final devices = await midiCommand.devices;
-        MidiDevice? match;
-        if (devices != null) {
-          try {
-            match = devices.firstWhere((d) => d.name == name);
-          } catch (_) {
-            match = null;
-          }
-        } else {
-          log("Device list is null.");
-        }
-
-        if (match != null) {
-          log("Auto-connecting to CoreMIDI device: ${match.name}");
-          setState(() {
-            isConnecting = false;
-          });
-          connectToDevice(match);
-        } else {
-          log("CoreMIDI device '$name' not found in device list.");
-        }
-      }
-    });
     WidgetsBinding.instance.addObserver(this);
     midiCommand.startBluetoothCentral();
         midiCommand.onBleDeviceDiscovered.listen((device) {
@@ -177,12 +138,9 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
 
                             final foundDevices = await midiCommand.devices;
                             if (foundDevices != null && foundDevices.isNotEmpty) {
-                              log("Found devices: ${foundDevices.map((d) => d.name).toList()}");
                               setState(() {
                                 devices = foundDevices;
                               });
-                            } else {
-                              log("No devices found.");
                             }
                           },
                           child: Text("Scan for MIDI Devices"),
@@ -209,7 +167,6 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
                                     await MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
                                         .invokeMethod('connectToBlePeripheral', device['identifier']);
                                   } catch (e) {
-                                    log("BLE connection failed: $e");
                                     setState(() => isConnecting = false);
                                   }
                                 },
@@ -270,24 +227,26 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
               ],
             ),
           ),
-          // Output log
           Container(
-            height: 150,
-            color: Colors.black,
-            child: ListView.builder(
-              reverse: true,
-              itemCount: debugLog.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                  child: Text(
-                    debugLog[index],
-                    style: TextStyle(color: Colors.greenAccent, fontSize: 12),
-                  ),
-                );
-              },
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end, // Align everything to the right
+              children: [
+                Text(
+                  'Theme:',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                SizedBox(width: 12), // spacing between label and switch
+                Switch(
+                  value: Theme.of(context).brightness == Brightness.dark,
+                  onChanged: (isDark) {
+                    ThemeController.themeModeNotifier.value =
+                        isDark ? ThemeMode.dark : ThemeMode.light;
+                  },
+                ),
+              ],
             ),
-          ),
+          )
         ],
       ),
     );

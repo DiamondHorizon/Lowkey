@@ -21,7 +21,12 @@ void showPauseMenu({
       bool localWaitMode = waitMode;
 
       return AlertDialog(
-        title: Text("Settings"),
+        title: Text(
+          'Settings',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSecondary,
+          ),
+        ),
         content: StatefulBuilder(
           builder: (context, setState) => Column(
             mainAxisSize: MainAxisSize.min,

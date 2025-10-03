@@ -176,33 +176,40 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Playing: ${widget.songName}")),
+      appBar: AppBar(
+        title: Text("Playing: ${widget.songName}"),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: IconButton(
-              icon: Icon(Icons.pause),
-              onPressed: () => showPauseMenu(
-                context: context,
-                tempoFactor: tempoFactor,
-                onTempoChanged: updateTempo,
-                selectedHand: selectedHand,
-                onHandChanged: updateHand,
-                waitMode: waitMode,
-                onWaitModeChanged: updateWaitMode,
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0, top: 8.0),
+            child: Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: Icon(Icons.pause),
+                onPressed: () => showPauseMenu(
+                  context: context,
+                  tempoFactor: tempoFactor,
+                  onTempoChanged: updateTempo,
+                  selectedHand: selectedHand,
+                  onHandChanged: updateHand,
+                  waitMode: waitMode,
+                  onWaitModeChanged: updateWaitMode,
+                ),
               ),
             ),
           ),
           SizedBox(height: 16),
-          Center (
+          Center(
             child: ElevatedButton(
               onPressed: playSong,
               child: Text("Play"),
             ),
           ),
-          NoteDisplay(activeNotes: currentNotes),
+          Expanded(
+            child: NoteDisplay(activeNotes: currentNotes),
+          ),
           SizedBox(
             width: double.infinity,
             height: MediaQuery.of(context).size.height * 0.25,
@@ -223,7 +230,6 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
 // TODO: 
 // make it acutally sound like the song??, 
-// add back arrow to song list when hitting go to songs, 
 // fix color theme
 
 // Eventually: 
