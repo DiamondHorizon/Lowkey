@@ -24,6 +24,31 @@ class _MidiInputScreenState extends State<MidiInputScreen> with WidgetsBindingOb
   @override
   void initState() {
     super.initState();
+
+    // Connect to Raw BLE device automatically once it is promoted
+    MethodChannel('plugins.invisiblewrench.com/flutter_midi_command')
+    .setMethodCallHandler((call) async {
+      if (call.method == "coreMidiDeviceReady") {
+        final name = call.arguments["name"];
+
+        final devices = await midiCommand.devices;
+        MidiDevice? match;
+        if (devices != null) {
+          try {
+            match = devices.firstWhere((d) => d.name == name);
+          } catch (_) {
+            match = null;
+          }
+        }
+
+        if (match != null) {
+          setState(() {
+            isConnecting = false;
+          });
+          connectToDevice(match);
+        }
+      }
+    });
     WidgetsBinding.instance.addObserver(this);
     midiCommand.startBluetoothCentral();
         midiCommand.onBleDeviceDiscovered.listen((device) {
