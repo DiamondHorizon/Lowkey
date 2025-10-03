@@ -24,7 +24,7 @@ void showPauseMenu({
         title: Text(
           'Settings',
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSecondary,
+            color: Theme.of(context).colorScheme.surface,
           ),
         ),
         content: StatefulBuilder(
@@ -56,9 +56,12 @@ void showPauseMenu({
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Close"),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Close"),
+            ),
           ),
         ],
       );

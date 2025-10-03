@@ -230,7 +230,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
 // TODO: 
 // make it acutally sound like the song??, 
-// fix color theme
+// fix hand toggle
 
 // Eventually: 
 // Falling notes, 

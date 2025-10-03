@@ -49,7 +49,7 @@ class AppTheme {
       listTileTheme: ListTileThemeData(
         selectedColor: colorScheme.secondary,
         iconColor: colorScheme.onSurface,
-        textColor: colorScheme.secondary,
+        textColor: colorScheme.surface,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
