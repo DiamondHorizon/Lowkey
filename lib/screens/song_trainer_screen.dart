@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../functions/pause_menu.dart';
 import '../services/json_parser.dart';
 import '../services/midi_service.dart';
-import '../widgets/falling_note.dart';
+import '../widgets/falling_note_layer.dart';
 import '../widgets/piano_keyboard.dart';
 
 class SongTrainerScreen extends StatefulWidget {
@@ -35,6 +35,10 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   bool isLoading = true;
   final double noteHeight = 20.0;
   double keyboardY = 0.0;
+  final ValueNotifier<int> currentTimeNotifier = ValueNotifier(0);
+  bool isTicking = false;
+  int currentTime = 0;
+  final GlobalKey stackKey = GlobalKey();
 
   @override
   void initState() {
@@ -86,11 +90,8 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     prefs.setBool('waitMode', value);
   }
 
-  int currentTime = 0;
-
   Future<void> loadNoteEvents() async {
     final loaded = await loadNoteInstructionsFromJson(widget.filename);
-    print('[Trainer] Loaded ${loaded.length} notes');
     setState(() {
       instructions = loaded;
       isLoading = false;
@@ -98,25 +99,40 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   }
 
   void startPlayback() {
+    if (isTicking) return;
+    isTicking = true;
+
     final startTime = DateTime.now().millisecondsSinceEpoch;
-    playbackTimer = Timer.periodic(Duration(milliseconds: 16), (timer) {
+
+    void tick() {
       if (!mounted) return;
 
-      final anyNoteAtKeyboard = activeFallingNotes.any((note) {
-        final y = getYPosition(note.timeMs);
-        return y >= keyboardY - noteHeight && y <= keyboardY + noteHeight;
+      final currentTime = DateTime.now().millisecondsSinceEpoch - startTime;
+      final anyPendingNoteAtKeyboard = activeFallingNotes.any((note) {
+        final y = getYPosition(note.timeMs, currentTime);
+        return pendingNotes.contains(note.noteNumber) &&
+              y >= keyboardY - noteHeight &&
+              y <= keyboardY + noteHeight;
       });
 
-      if (!waitMode || !anyNoteAtKeyboard) {
-        setState(() {
-          currentTime = DateTime.now().millisecondsSinceEpoch - startTime;
-        });
+      if (!waitMode || !anyPendingNoteAtKeyboard) {
+        currentTimeNotifier.value = currentTime;
+        Future.delayed(Duration(milliseconds: 16), tick);
+      } else {
+        isTicking = false; // Stop ticking until user plays correct notes
+        print('[Paused] Waiting for user input...');
       }
-    });
+    }
+
+    tick();
   }
 
-  double getYPosition(int noteTime) {
-    return (currentTime - noteTime) * tempoFactor * baseSpeed;
+  double getYPosition(int noteTime, int currentTime) {
+    final y = (currentTime - noteTime) * tempoFactor * baseSpeed;
+
+    // 🔧 Force clamping for test
+    final stopY = keyboardY - noteHeight;
+    return (waitMode && !isTicking) ? (y > stopY ? stopY : y) : y;
   }
 
   double mapPitchToX(int pitch) {
@@ -129,69 +145,58 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   }
 
   void playSong() {
+    isTicking = false;
+    currentTimeNotifier.value = 0;
     if (instructions == null || instructions!.isEmpty) return;
 
-    playbackTimer?.cancel(); // Cancel any previous timer
+    playbackTimer?.cancel();
 
-    setState(() {
-      currentTime = 0;
-      pendingNotes.clear();
-      playedNotes.clear();
-      activeFallingNotes = filterByHand(
-        instructions!.where((e) => e.isNoteOn).toList(),
-        selectedHand,
-      );
-    });
+    final filtered = filterByHand(
+      instructions!.where((e) => e.isNoteOn).toList(),
+      selectedHand,
+    );
+
+    if (filtered.isEmpty) return;
+
+    pendingNotes.clear();
+    playedNotes.clear();
+    activeFallingNotes = filtered;
+
+    for (final note in activeFallingNotes) {
+      pendingNotes.add(note.noteNumber);
+      midiService.waitForUserInput(note.noteNumber).then((_) {
+        if (mounted) {
+          setState(() {
+            activeFallingNotes.remove(note);
+            playedNotes.add(note.noteNumber);
+          });
+
+          Future.delayed(Duration(milliseconds: 300), () {
+            if (mounted) {
+              setState(() {
+                playedNotes.remove(note.noteNumber);
+                pendingNotes.remove(note.noteNumber);
+              });
+            }
+          });
+
+          if (waitMode && !isTicking) {
+            Future.delayed(Duration(milliseconds: 16), () {
+              if (!isTicking && mounted) startPlayback();
+            });
+          }
+        }
+      });
+    }
+
+    // Start playback immediately
     startPlayback();
   }
 
   @override
   Widget build(BuildContext context) {
     final double keyWidth = MediaQuery.of(context).size.width / 88; // for 88 keys
-    final double keyboardHeight = MediaQuery.of(context).size.height * 0.25;
-    keyboardY = MediaQuery.of(context).size.height - keyboardHeight;
-
-    final notesToPlay = activeFallingNotes.where((note) {
-      final y = getYPosition(note.timeMs);
-      return y >= keyboardY - noteHeight && y <= keyboardY + noteHeight;
-    }).toList();
-
-    for (final note in notesToPlay) {
-      if (!pendingNotes.contains(note.noteNumber)) {
-        pendingNotes.add(note.noteNumber);
-        midiService.waitForUserInput(note.noteNumber).then((_) {
-          if (mounted) {
-            setState(() {
-              activeFallingNotes.remove(note);
-              pendingNotes.remove(note.noteNumber);
-              playedNotes.add(note.noteNumber); // Show matched note
-            });
-
-            // Optional: clear highlight after short delay
-            Future.delayed(Duration(milliseconds: 300), () {
-              if (mounted) {
-                setState(() {
-                  playedNotes.remove(note.noteNumber);
-                });
-              }
-            });
-          }
-        });
-      }
-    }
-
-
-    final missedNotes = activeFallingNotes.where((note) {
-      final y = getYPosition(note.timeMs);
-      return y > MediaQuery.of(context).size.height + noteHeight;
-    }).toList();
-
-    if (missedNotes.isNotEmpty) {
-      setState(() {
-        activeFallingNotes.removeWhere((note) => missedNotes.contains(note));
-        pendingNotes.removeAll(missedNotes.map((n) => n.noteNumber));
-      });
-    }
+    final double keyboardHeight = MediaQuery.of(context).size.height * 0.25; 
 
     return Scaffold(
       appBar: AppBar(
@@ -227,37 +232,89 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
           ),
           Expanded(
             child: Stack(
+              key: stackKey,
               children: [
                 if (isLoading)
                   Center(child: CircularProgressIndicator())
                 else
-                  ...activeFallingNotes
-                    .where((event) =>
-                      getYPosition(event.timeMs) >= -noteHeight &&
-                      getYPosition(event.timeMs) <= MediaQuery.of(context).size.height)
-                    .map((event) => FallingNote(
-                      pitch: event.noteNumber,
-                      yPosition: getYPosition(event.timeMs),
-                      color: event.hand == 'left' ? Colors.blue : Colors.green,
-                      keyWidth: keyWidth,
-                      noteHeight: noteHeight,
-                      mapPitchToX: mapPitchToX,
-                    )),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: MediaQuery.of(context).size.height * 0.25,
-                    child: PianoKeyboard(
-                      activeNotes: playedNotes,
-                      expectedNotes: waitMode ? pendingNotes.toList() : [],
-                      handMap: handMap,
-                      onKeyPressed: (note) {
-                        midiService.registerNotePressed(note);
-                      },
-                    ),
+                  ValueListenableBuilder<int>(
+                    valueListenable: currentTimeNotifier,
+                    builder: (_, currentTime, __) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final renderBox = stackKey.currentContext?.findRenderObject() as RenderBox?;
+                        if (renderBox != null) {
+                          final stackHeight = renderBox.size.height;
+                          keyboardY = stackHeight - keyboardHeight;
+                        }
+                      });
+                      final expectedNotes = activeFallingNotes.where((note) {
+                        final y = getYPosition(note.timeMs, currentTime);
+                        return pendingNotes.contains(note.noteNumber) &&
+                              y >= keyboardY - noteHeight * 1.5 &&
+                              y <= keyboardY + noteHeight;
+                      }).map((note) => note.noteNumber).toList();
+
+                      final missedNotes = activeFallingNotes.where((note) {
+                        final y = getYPosition(note.timeMs, currentTime);
+                        return y > MediaQuery.of(context).size.height + noteHeight;
+                      }).toList();
+
+                      if (missedNotes.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          setState(() {
+                            activeFallingNotes.removeWhere((note) => missedNotes.contains(note));
+                            pendingNotes.removeAll(missedNotes.map((n) => n.noteNumber));
+                          });
+                        });
+                      }
+
+                      return Stack(
+                        children: [
+                          FallingNoteLayer(
+                            notes: activeFallingNotes,
+                            noteHeight: noteHeight,
+                            getYPosition: (noteTime) => getYPosition(noteTime, currentTime),
+                            mapPitchToX: mapPitchToX,
+                            keyWidth: keyWidth,
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: MediaQuery.of(context).size.height * 0.25,
+                              child: PianoKeyboard(
+                                activeNotes: playedNotes,
+                                expectedNotes: waitMode ? expectedNotes : [],
+                                handMap: handMap,
+                                onKeyPressed: (note) {
+                                  midiService.registerNotePressed(note);
+                                  setState(() {
+                                    playedNotes.add(note);
+                                  });
+                                  Future.delayed(Duration(milliseconds: 300), () {
+                                    if (mounted) {
+                                      setState(() {
+                                        playedNotes.remove(note);
+                                      });
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: keyboardY,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: 2,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                ),
               ],
             ),
           ),
