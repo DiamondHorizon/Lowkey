@@ -125,12 +125,6 @@
                     ),
                   );
                 }),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(height: 2, color: Colors.blue),
-                ),
               ],
             ),
           );

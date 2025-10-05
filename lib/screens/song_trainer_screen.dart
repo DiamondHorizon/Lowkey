@@ -25,20 +25,22 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   double tempoFactor = 1.0; // Default to 100% speed
   String selectedHand = 'both';
   List<NoteInstruction>? instructions;
-  List<NoteInstruction> activeFallingNotes = [];
   bool waitMode = false;
   Map<int, String> handMap = {};
   double baseSpeed = 0.1;
-  Timer? playbackTimer;
   Set<int> pendingNotes = {};
-  List<int> playedNotes = [];
   bool isLoading = true;
   final double noteHeight = 20.0;
   double keyboardY = 0.0;
   final ValueNotifier<int> currentTimeNotifier = ValueNotifier(0);
   bool isTicking = false;
-  int currentTime = 0;
   final GlobalKey stackKey = GlobalKey();
+  double stackHeight = 0.0;
+  final activeFallingNotesNotifier = ValueNotifier<List<NoteInstruction>>([]);
+  final playedNotesNotifier = ValueNotifier<Set<int>>({});
+  final isPausedNotifier = ValueNotifier<bool>(true);
+  bool hasStartedPlayback = false;
+  int startTimeOffset = 0;
 
   @override
   void initState() {
@@ -54,7 +56,6 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
   @override
   void dispose() { // When leaving the screen
-    playbackTimer?.cancel(); // Cancel the timer
     WakelockPlus.disable(); // Disable always on
     SystemChrome.setPreferredOrientations([ // Rotate back to portrait
       DeviceOrientation.portraitUp,
@@ -99,16 +100,23 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   }
 
   void startPlayback() {
-    if (isTicking) return;
+    if (isTicking || isPausedNotifier.value) return;
     isTicking = true;
 
-    final startTime = DateTime.now().millisecondsSinceEpoch;
+    final startTime = DateTime.now().millisecondsSinceEpoch - startTimeOffset;
 
     void tick() {
       if (!mounted) return;
 
       final currentTime = DateTime.now().millisecondsSinceEpoch - startTime;
-      final anyPendingNoteAtKeyboard = activeFallingNotes.any((note) {
+
+      if (isPausedNotifier.value) {
+        isTicking = false;
+        startTimeOffset = currentTimeNotifier.value; // Save current time
+        return;
+      }
+
+      final anyPendingNoteAtKeyboard = activeFallingNotesNotifier.value.any((note) {
         final y = getYPosition(note.timeMs, currentTime);
         return pendingNotes.contains(note.noteNumber) &&
               y >= keyboardY - noteHeight &&
@@ -119,18 +127,22 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
         currentTimeNotifier.value = currentTime;
         Future.delayed(Duration(milliseconds: 16), tick);
       } else {
-        isTicking = false; // Stop ticking until user plays correct notes
-        print('[Paused] Waiting for user input...');
+        isTicking = false;
       }
     }
 
     tick();
   }
 
+  void resumePlayback() {
+    if (!isTicking) {
+      isPausedNotifier.value = false;
+      startPlayback();
+    }
+  }
+
   double getYPosition(int noteTime, int currentTime) {
     final y = (currentTime - noteTime) * tempoFactor * baseSpeed;
-
-    // 🔧 Force clamping for test
     final stopY = keyboardY - noteHeight;
     return (waitMode && !isTicking) ? (y > stopY ? stopY : y) : y;
   }
@@ -144,12 +156,34 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     return (pitch - startNote) * keyWidth;
   }
 
+  List<NoteInstruction> getVisibleNotes(List<NoteInstruction> notes, int currentTime, double stackHeight) {
+    return notes.where((note) {
+      final y = getYPosition(note.timeMs, currentTime);
+      return y >= -noteHeight && y <= stackHeight + noteHeight;
+    }).toList();
+  }
+
+  List<int> getExpectedNotes(List<NoteInstruction> notes, int currentTime) {
+    return notes.where((note) {
+      final y = getYPosition(note.timeMs, currentTime);
+      return pendingNotes.contains(note.noteNumber) &&
+            y >= keyboardY - noteHeight * 1.5 &&
+            y <= keyboardY + noteHeight;
+    }).map((note) => note.noteNumber).toList();
+  }
+
+  List<NoteInstruction> getMissedNotes(List<NoteInstruction> notes, int currentTime, double screenHeight) {
+    return notes.where((note) {
+      final y = getYPosition(note.timeMs, currentTime);
+      return y > screenHeight + noteHeight;
+    }).toList();
+  }
+
   void playSong() {
+    startTimeOffset = 0;
     isTicking = false;
     currentTimeNotifier.value = 0;
     if (instructions == null || instructions!.isEmpty) return;
-
-    playbackTimer?.cancel();
 
     final filtered = filterByHand(
       instructions!.where((e) => e.isNoteOn).toList(),
@@ -159,22 +193,22 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     if (filtered.isEmpty) return;
 
     pendingNotes.clear();
-    playedNotes.clear();
-    activeFallingNotes = filtered;
+    playedNotesNotifier.value = {};
+    activeFallingNotesNotifier.value = filtered;
 
-    for (final note in activeFallingNotes) {
+    for (final note in filtered) {
       pendingNotes.add(note.noteNumber);
       midiService.waitForUserInput(note.noteNumber).then((_) {
         if (mounted) {
-          setState(() {
-            activeFallingNotes.remove(note);
-            playedNotes.add(note.noteNumber);
-          });
+          final updated = [...activeFallingNotesNotifier.value];
+          updated.remove(note);
+          activeFallingNotesNotifier.value = updated;
+          playedNotesNotifier.value = {...playedNotesNotifier.value, note.noteNumber};
 
           Future.delayed(Duration(milliseconds: 300), () {
             if (mounted) {
               setState(() {
-                playedNotes.remove(note.noteNumber);
+                playedNotesNotifier.value = playedNotesNotifier.value..remove(note);
                 pendingNotes.remove(note.noteNumber);
               });
             }
@@ -190,6 +224,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     }
 
     // Start playback immediately
+    isPausedNotifier.value = false;
     startPlayback();
   }
 
@@ -223,99 +258,115 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
               ),
             ),
           ),
-          SizedBox(height: 16),
-          Center(
-            child: ElevatedButton(
-              onPressed: playSong,
-              child: Text("Play"),
-            ),
-          ),
           Expanded(
-            child: Stack(
-              key: stackKey,
-              children: [
-                if (isLoading)
-                  Center(child: CircularProgressIndicator())
-                else
-                  ValueListenableBuilder<int>(
-                    valueListenable: currentTimeNotifier,
-                    builder: (_, currentTime, __) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final renderBox = stackKey.currentContext?.findRenderObject() as RenderBox?;
-                        if (renderBox != null) {
-                          final stackHeight = renderBox.size.height;
-                          keyboardY = stackHeight - keyboardHeight;
-                        }
-                      });
-                      final expectedNotes = activeFallingNotes.where((note) {
-                        final y = getYPosition(note.timeMs, currentTime);
-                        return pendingNotes.contains(note.noteNumber) &&
-                              y >= keyboardY - noteHeight * 1.5 &&
-                              y <= keyboardY + noteHeight;
-                      }).map((note) => note.noteNumber).toList();
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                stackHeight = constraints.maxHeight;
+                keyboardY = stackHeight - keyboardHeight;
 
-                      final missedNotes = activeFallingNotes.where((note) {
-                        final y = getYPosition(note.timeMs, currentTime);
-                        return y > MediaQuery.of(context).size.height + noteHeight;
-                      }).toList();
+                return Stack(
+                  key: stackKey,
+                  children: [
+                    if (isLoading)
+                      Center(child: CircularProgressIndicator())
+                    else
+                      ValueListenableBuilder<int>(
+                        valueListenable: currentTimeNotifier,
+                        builder: (_, currentTime, __) {
+                          final expectedNotes = getExpectedNotes(activeFallingNotesNotifier.value, currentTime);
 
-                      if (missedNotes.isNotEmpty) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          setState(() {
-                            activeFallingNotes.removeWhere((note) => missedNotes.contains(note));
-                            pendingNotes.removeAll(missedNotes.map((n) => n.noteNumber));
-                          });
-                        });
-                      }
+                          final missedNotes = getMissedNotes(activeFallingNotesNotifier.value, currentTime, MediaQuery.of(context).size.height);
+                          if (missedNotes.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              final missedIds = missedNotes.map((n) => n.noteNumber).toSet();
+                              final updated = activeFallingNotesNotifier.value
+                                  .where((note) => !missedIds.contains(note.noteNumber))
+                                  .toList();
+                              activeFallingNotesNotifier.value = updated;
+                              pendingNotes.removeAll(missedIds);
+                            });
+                          }
 
-                      return Stack(
-                        children: [
-                          FallingNoteLayer(
-                            notes: activeFallingNotes,
-                            noteHeight: noteHeight,
-                            getYPosition: (noteTime) => getYPosition(noteTime, currentTime),
-                            mapPitchToX: mapPitchToX,
-                            keyWidth: keyWidth,
-                          ),
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: MediaQuery.of(context).size.height * 0.25,
-                              child: PianoKeyboard(
-                                activeNotes: playedNotes,
-                                expectedNotes: waitMode ? expectedNotes : [],
-                                handMap: handMap,
-                                onKeyPressed: (note) {
-                                  midiService.registerNotePressed(note);
-                                  setState(() {
-                                    playedNotes.add(note);
-                                  });
-                                  Future.delayed(Duration(milliseconds: 300), () {
-                                    if (mounted) {
-                                      setState(() {
-                                        playedNotes.remove(note);
-                                      });
-                                    }
-                                  });
-                                },
-                              ),
+                          final visibleNotes = getVisibleNotes(activeFallingNotesNotifier.value, currentTime, stackHeight);
+
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              if (!isPausedNotifier.value) {
+                                isPausedNotifier.value = true;
+                              }
+                            },
+                            child: Stack(
+                              children: [
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: isPausedNotifier,
+                                  builder: (_, isPaused, __) {
+                                    return isPaused
+                                        ? GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              if (!hasStartedPlayback) {
+                                                hasStartedPlayback = true;
+                                                playSong();
+                                              } else {
+                                                resumePlayback();
+                                              }
+                                            },
+                                            child: Container(
+                                              color: Colors.black.withAlpha(102),
+                                              child: Center(
+                                                child: Icon(
+                                                  Icons.play_arrow,
+                                                  color: Colors.white,
+                                                  size: 64,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : SizedBox.shrink();
+                                  },
+                                ),
+                                FallingNoteLayer(
+                                  notes: visibleNotes,
+                                  noteHeight: noteHeight,
+                                  getYPosition: (noteTime) => getYPosition(noteTime, currentTime),
+                                  mapPitchToX: mapPitchToX,
+                                  keyWidth: keyWidth,
+                                ),
+                                Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    height: MediaQuery.of(context).size.height * 0.25,
+                                    child: ValueListenableBuilder<Set<int>>(
+                                      valueListenable: playedNotesNotifier,
+                                      builder: (_, playedNotes, __) {
+                                        return PianoKeyboard(
+                                          activeNotes: playedNotes.toList(),
+                                          expectedNotes: waitMode ? expectedNotes : [],
+                                          handMap: handMap,
+                                          onKeyPressed: (note) {
+                                            midiService.registerNotePressed(note);
+                                            playedNotesNotifier.value = {...playedNotesNotifier.value, note};
+                                            Future.delayed(Duration(milliseconds: 300), () {
+                                              if (mounted) {
+                                                playedNotesNotifier.value = playedNotesNotifier.value..remove(note);
+                                              }
+                                            });
+                                          },  
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          Positioned(
-                            top: keyboardY,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 2,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-              ],
+                          );
+                        },
+                      ),
+                  ],
+                );
+              }
             ),
           ),
         ],
@@ -325,7 +376,10 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 }
 
 // TODO: 
-// Make it acutally sound like the song with falling notes 
+// Make it acutally sound like the song with falling notes
+// Fix hand toggle
+// Make falling notes line up with keys
+// Prevent all notes from clearing
 
 // Eventually: 
 // Sheet music 

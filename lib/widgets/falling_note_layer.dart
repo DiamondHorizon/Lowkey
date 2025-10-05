@@ -25,18 +25,20 @@ class FallingNoteLayer extends StatelessWidget {
 
     return Stack(
       children: notes
-          .where((note) {
+          .map((note) {
             final y = getYPosition(note.timeMs);
-            return y >= 0 && y <= screenHeight + noteHeight;
+            return (y >= -noteHeight && y <= screenHeight + noteHeight)
+                ? FallingNote(
+                    pitch: note.noteNumber,
+                    yPosition: y,
+                    color: note.hand == 'left' ? Colors.blue : Colors.green,
+                    keyWidth: keyWidth,
+                    noteHeight: noteHeight,
+                    mapPitchToX: mapPitchToX,
+                  )
+                : null;
           })
-          .map((note) => FallingNote(
-                pitch: note.noteNumber,
-                yPosition: getYPosition(note.timeMs),
-                color: note.hand == 'left' ? Colors.blue : Colors.green,
-                keyWidth: keyWidth,
-                noteHeight: noteHeight,
-                mapPitchToX: mapPitchToX,
-              ))
+          .whereType<Widget>()
           .toList(),
     );
   }

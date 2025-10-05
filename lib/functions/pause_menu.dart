@@ -28,33 +28,41 @@ void showPauseMenu({
           ),
         ),
         content: StatefulBuilder(
-          builder: (context, setState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TempoSlider(
-                tempoFactor: localTempo,
-                onChanged: (value) {
-                  setState(() => localTempo = value);
-                  onTempoChanged(value);
-                },
+          builder: (context, setState) => SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TempoSlider(
+                    tempoFactor: localTempo,
+                    onChanged: (value) {
+                      setState(() => localTempo = value);
+                      onTempoChanged(value);
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  WaitModeToggle(
+                    waitMode: localWaitMode,
+                    onChanged: (value) {
+                      setState(() => localWaitMode = value);
+                      onWaitModeChanged(value);
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  HandToggle(
+                    selectedHand: localHand,
+                    onChanged: (value) {
+                      setState(() => localHand = value);
+                      onHandChanged(value);
+                    },
+                  ),
+                ],
               ),
-              WaitModeToggle(
-                waitMode: localWaitMode,
-                onChanged: (value) {
-                  setState(() => localWaitMode = value);
-                  onWaitModeChanged(value);
-                },
-              ),
-              HandToggle(
-                selectedHand: localHand,
-                onChanged: (value) {
-                  setState(() => localHand = value);
-                  onHandChanged(value);
-                },
-              ),
-            ],
+            ),
           ),
         ),
+        // Close Button
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
