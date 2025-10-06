@@ -4,7 +4,7 @@ import '../widgets/tempo_slider.dart';
 import '../widgets/hand_toggle.dart';
 import '../widgets/wait_mode_toggle.dart';
 
-void showPauseMenu({
+Future<bool?> showPauseMenu({
   required BuildContext context,
   required double tempoFactor,
   required ValueChanged<double> onTempoChanged,
@@ -13,7 +13,7 @@ void showPauseMenu({
   required bool waitMode,
   required ValueChanged<bool> onWaitModeChanged,
 }) {
-  showDialog(
+  return showDialog<bool>(
     context: context,
     builder: (context) {
       double localTempo = tempoFactor;
@@ -67,7 +67,9 @@ void showPauseMenu({
           Padding(
             padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
             child: TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
               child: Text("Close"),
             ),
           ),
