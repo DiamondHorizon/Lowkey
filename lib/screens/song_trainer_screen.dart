@@ -41,7 +41,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   final isPausedNotifier = ValueNotifier<bool>(true);
   bool hasStartedPlayback = false;
   int startTimeOffset = 0;
-  int? startTime;
+  Set<int> matchedExpectedPitches = {};
 
   @override
   void initState() {
@@ -338,8 +338,12 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
                                             // Get the note numbers of every expected note
                                             final expectedNoteNumbers = expectedNotes.map((n) => n.noteNumber).toSet();
 
+                                            if (expectedNoteNumbers.contains(note)) {
+                                              matchedExpectedPitches.add(note);
+                                            }
+
                                             // Determine if every expected note is being
-                                            final allExpectedNotesPlayed = expectedNoteNumbers.every((pitch) => activeNotesNotifier.value.contains(pitch));
+                                            final allExpectedNotesPlayed = expectedNoteNumbers.difference(matchedExpectedPitches).isEmpty;
 
                                             // Remove notes if all are found
                                             if (matchingNotes.isNotEmpty && allExpectedNotesPlayed) {
