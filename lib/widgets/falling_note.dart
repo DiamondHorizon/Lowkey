@@ -20,9 +20,9 @@ class FallingNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: yPosition,
-      left: mapPitchToX(pitch),
+    return AnimatedOpacity(
+      duration: Duration(milliseconds: 200),
+      opacity: 1.0,
       child: Container(
         width: keyWidth,
         height: noteHeight,

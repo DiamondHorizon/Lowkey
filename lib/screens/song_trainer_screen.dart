@@ -28,7 +28,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   bool waitMode = false;
   Map<int, String> handMap = {};
   double baseSpeed = 0.1;
-  Set<NoteInstruction> pendingNotes = {};
+  Set<NoteInstruction> remainingNotes = {};
   bool isLoading = true;
   final double noteHeight = 20.0;
   double keyboardY = 0.0;
@@ -37,10 +37,11 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   final GlobalKey stackKey = GlobalKey();
   double stackHeight = 0.0;
   final activeFallingNotesNotifier = ValueNotifier<List<NoteInstruction>>([]);
-  final playedNotesNotifier = ValueNotifier<Set<int>>({});
+  final activeNotesNotifier = ValueNotifier<Set<int>>({});
   final isPausedNotifier = ValueNotifier<bool>(true);
   bool hasStartedPlayback = false;
   int startTimeOffset = 0;
+  int? startTime;
 
   @override
   void initState() {
@@ -102,32 +103,34 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   void startPlayback() {
     if (isTicking || isPausedNotifier.value) return;
     isTicking = true;
-
-    final startTime = DateTime.now().millisecondsSinceEpoch - startTimeOffset;
+    final startTime = DateTime.now().millisecondsSinceEpoch - currentTimeNotifier.value;
 
     void tick() {
       if (!mounted) return;
 
       final currentTime = DateTime.now().millisecondsSinceEpoch - startTime;
 
+      // When the user pauses the playback
       if (isPausedNotifier.value) {
         isTicking = false;
-        startTimeOffset = currentTimeNotifier.value; // Save current time
+        startTimeOffset = currentTime;
         return;
       }
 
-      final anyPendingNoteAtKeyboard = activeFallingNotesNotifier.value.any((note) {
-        final y = getYPosition(note.timeMs, currentTime);
-        return pendingNotes.contains(note) &&
-              y >= keyboardY - noteHeight &&
+      // Loop through all currently falling notes
+      final anyremainingNoteAtKeyboard = activeFallingNotesNotifier.value.any((note) {
+        final y = getYPosition(note.timeMs, currentTime); // Get the y-position of each note
+        return remainingNotes.contains(note) && // Check if the note is still in remaining notes
+              y >= keyboardY - noteHeight && // Check if the note is near the keyboard
               y <= keyboardY + noteHeight;
-      });
+      }); // Assigns true to anyremainingNoteAtKeyboard if a note exists within that criteria
 
-      if (!waitMode || !anyPendingNoteAtKeyboard) {
-        currentTimeNotifier.value = currentTime;
-        Future.delayed(Duration(milliseconds: 16), tick);
+      // If not using wait mode or there are no pending notes near the keyboard
+      if (!waitMode || !anyremainingNoteAtKeyboard) {
+        currentTimeNotifier.value = currentTime; // Actually tick
+        Future.delayed(Duration(milliseconds: 16), tick); // Recursive call in 16ms
       } else {
-        isTicking = false;
+        isTicking = false; // Stops ticking
       }
     }
 
@@ -181,13 +184,13 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     }).toList();
   }
 
-  List<int> getExpectedNotes(List<NoteInstruction> notes, int currentTime) {
+  List<NoteInstruction> getExpectedNotes(List<NoteInstruction> notes, int currentTime) {
     return notes.where((note) {
       final y = getYPosition(note.timeMs, currentTime);
-      return pendingNotes.contains(note) &&
+      return remainingNotes.contains(note) &&
             y >= keyboardY - noteHeight * 1.5 &&
             y <= keyboardY + noteHeight;
-    }).map((note) => note.noteNumber).toList();
+    }).toList();
   }
 
   List<NoteInstruction> getMissedNotes(List<NoteInstruction> notes, int currentTime, double screenHeight) {
@@ -200,7 +203,6 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   void playSong() {
     startTimeOffset = 0;
     isTicking = false;
-    currentTimeNotifier.value = 0;
     if (instructions == null || instructions!.isEmpty) return;
 
     final filtered = filterByHand(
@@ -210,35 +212,12 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
     if (filtered.isEmpty) return;
 
-    pendingNotes.clear();
-    playedNotesNotifier.value = {};
+    remainingNotes.clear();
+    activeNotesNotifier.value = {};
     activeFallingNotesNotifier.value = filtered;
 
     for (final note in filtered) {
-      pendingNotes.add(note);
-      midiService.waitForUserInput(note.noteNumber).then((_) {
-        if (mounted) {
-          final updated = [...activeFallingNotesNotifier.value];
-          updated.remove(note);
-          activeFallingNotesNotifier.value = updated;
-          playedNotesNotifier.value = {...playedNotesNotifier.value, note.noteNumber};
-
-          Future.delayed(Duration(milliseconds: 300), () {
-            if (mounted) {
-              setState(() {
-                playedNotesNotifier.value = playedNotesNotifier.value..remove(note.noteNumber);
-                pendingNotes.remove(note);
-              });
-            }
-          });
-
-          if (waitMode && !isTicking) {
-            Future.delayed(Duration(milliseconds: 16), () {
-              if (!isTicking && mounted) startPlayback();
-            });
-          }
-        }
-      });
+      remainingNotes.add(note);
     }
 
     // Start playback immediately
@@ -329,6 +308,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
                                 ),
                                 // Falling Note Layer
                                 FallingNoteLayer(
+                                  activeFallingNotesNotifier: activeFallingNotesNotifier,
                                   notes: visibleNotes,
                                   noteHeight: noteHeight,
                                   getYPosition: (noteTime) => getYPosition(noteTime, currentTime),
@@ -342,36 +322,46 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
                                     width: double.infinity,
                                     height: MediaQuery.of(context).size.height * 0.25,
                                     child: ValueListenableBuilder<Set<int>>(
-                                      valueListenable: playedNotesNotifier,
-                                      builder: (_, playedNotes, __) {
+                                      valueListenable: activeNotesNotifier,
+                                      builder: (_, activeNotes, __) {
                                         return PianoKeyboard(
-                                          activeNotes: playedNotes.toList(),
-                                          expectedNotes: waitMode ? expectedNotes : [],
+                                          activeNotes: activeNotes.toList(),
+                                          expectedNotes: waitMode ? expectedNotes.map((note) => note.noteNumber).toList() : [],
                                           handMap: handMap,
                                           onKeyPressed: (note) {
                                             midiService.registerNotePressed(note);
-                                            playedNotesNotifier.value = {...playedNotesNotifier.value, note};
+                                            activeNotesNotifier.value = {...activeNotesNotifier.value, note}; // Adds active notes to the set, triggers keyboard rebuild for highlighting
 
-                                            final currentTime = currentTimeNotifier.value;
-                                            final visibleNotes = getVisibleNotes(activeFallingNotesNotifier.value, currentTime, stackHeight);
-                                            final expectedNotes = getExpectedNotes(activeFallingNotesNotifier.value, currentTime);
+                                            // Find the all notes that are expected and matches the played note
+                                            final matchingNotes = expectedNotes.where((n) => n.noteNumber == note);
 
-                                            // Find the first matching note that is visible, expected, and matches the played note
-                                            final matchingNotes = visibleNotes.where(
-                                              (n) => n.noteNumber == note && expectedNotes.contains(note),
-                                            );
+                                            // Get the note numbers of every expected note
+                                            final expectedNoteNumbers = expectedNotes.map((n) => n.noteNumber).toSet();
 
-                                            if (matchingNotes.isNotEmpty) {
-                                              final matchingNote = matchingNotes.first;
-                                              final updated = [...activeFallingNotesNotifier.value];
-                                              updated.remove(matchingNote);
-                                              activeFallingNotesNotifier.value = updated;
-                                              pendingNotes.remove(matchingNote);
+                                            // Determine if every expected note is being
+                                            final allExpectedNotesPlayed = expectedNoteNumbers.every((pitch) => activeNotesNotifier.value.contains(pitch));
+
+                                            // Remove notes if all are found
+                                            if (matchingNotes.isNotEmpty && allExpectedNotesPlayed) {
+                                              for (final matchingNote in matchingNotes) { // Iterate through all notes
+                                                final updated = [...activeFallingNotesNotifier.value]; // Gets the list of active notes
+                                                updated.remove(matchingNote); // Removes the matched note from the list
+                                                activeFallingNotesNotifier.value = updated; // Updates the screen
+                                                remainingNotes.remove(matchingNote); // Removes the note from remainingNotes
+                                              }
                                             }
 
+                                            // Resume playback after wait mode (when keys pressed)
+                                            if (waitMode && !isTicking) {
+                                              Future.delayed(Duration(milliseconds: 16), () {
+                                                if (!isTicking && mounted) resumePlayback();
+                                              });
+                                            }
+
+                                            // Clear visual key press after 300ms
                                             Future.delayed(Duration(milliseconds: 300), () {
                                               if (mounted) {
-                                                playedNotesNotifier.value = playedNotesNotifier.value..remove(note);
+                                                activeNotesNotifier.value = activeNotesNotifier.value..remove(note);
                                               }
                                             });
                                           },
@@ -397,11 +387,9 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 }
 
 // TODO: 
-// Make it acutally sound like the song with falling notes
+// Make it acutally sound like the song
 // Indicate scrolling in pause menu
-// Prevent notes from dissapearing while falling
 // Make falling notes line up with keys
-// Prevent all notes from clearing
 
 // Eventually:
 // Add song progression
