@@ -223,6 +223,53 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     // Start playback immediately
     isPausedNotifier.value = false;
     startPlayback();
+    midiService.onNoteReceived = onInputReceived;
+  }
+
+  void onInputReceived(int note) {
+    midiService.registerNotePressed(note);
+    activeNotesNotifier.value = {...activeNotesNotifier.value, note}; // Adds active notes to the set, triggers keyboard rebuild for highlighting
+
+    // Get which notes are currently expected
+    final expectedNotes = getExpectedNotes(activeFallingNotesNotifier.value, currentTimeNotifier.value);
+
+    // Find the all notes that are expected and matches the played note
+    final matchingNotes = expectedNotes.where((n) => n.noteNumber == note);
+
+    // Get the note numbers of every expected note
+    final expectedNoteNumbers = expectedNotes.map((n) => n.noteNumber).toSet();
+
+    if (expectedNoteNumbers.contains(note)) {
+      matchedExpectedPitches.add(note);
+    }
+
+    // Determine if every expected note is being
+    final allExpectedNotesPlayed = expectedNoteNumbers.difference(matchedExpectedPitches).isEmpty;
+
+    // Remove notes if all are found
+    if (matchingNotes.isNotEmpty && allExpectedNotesPlayed) {
+      for (final matchingNote in matchingNotes) { // Iterate through all notes
+        final updated = [...activeFallingNotesNotifier.value]; // Gets the list of active notes
+        updated.remove(matchingNote); // Removes the matched note from the list
+        activeFallingNotesNotifier.value = updated; // Updates the screen
+        remainingNotes.remove(matchingNote); // Removes the note from remainingNotes
+      }
+      matchedExpectedPitches.clear(); // Reset after all notes matched
+    }
+
+    // Resume playback after wait mode (when keys pressed)
+    if (waitMode && !isTicking) {
+      Future.delayed(Duration(milliseconds: 16), () {
+        if (!isTicking && mounted) resumePlayback();
+      });
+    }
+
+    // Clear visual key press after 300ms
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        activeNotesNotifier.value = activeNotesNotifier.value..remove(note);
+      }
+    });
   }
 
   @override
@@ -328,47 +375,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
                                           activeNotes: activeNotes.toList(),
                                           expectedNotes: waitMode ? expectedNotes.map((note) => note.noteNumber).toList() : [],
                                           handMap: handMap,
-                                          onKeyPressed: (note) {
-                                            midiService.registerNotePressed(note);
-                                            activeNotesNotifier.value = {...activeNotesNotifier.value, note}; // Adds active notes to the set, triggers keyboard rebuild for highlighting
-
-                                            // Find the all notes that are expected and matches the played note
-                                            final matchingNotes = expectedNotes.where((n) => n.noteNumber == note);
-
-                                            // Get the note numbers of every expected note
-                                            final expectedNoteNumbers = expectedNotes.map((n) => n.noteNumber).toSet();
-
-                                            if (expectedNoteNumbers.contains(note)) {
-                                              matchedExpectedPitches.add(note);
-                                            }
-
-                                            // Determine if every expected note is being
-                                            final allExpectedNotesPlayed = expectedNoteNumbers.difference(matchedExpectedPitches).isEmpty;
-
-                                            // Remove notes if all are found
-                                            if (matchingNotes.isNotEmpty && allExpectedNotesPlayed) {
-                                              for (final matchingNote in matchingNotes) { // Iterate through all notes
-                                                final updated = [...activeFallingNotesNotifier.value]; // Gets the list of active notes
-                                                updated.remove(matchingNote); // Removes the matched note from the list
-                                                activeFallingNotesNotifier.value = updated; // Updates the screen
-                                                remainingNotes.remove(matchingNote); // Removes the note from remainingNotes
-                                              }
-                                            }
-
-                                            // Resume playback after wait mode (when keys pressed)
-                                            if (waitMode && !isTicking) {
-                                              Future.delayed(Duration(milliseconds: 16), () {
-                                                if (!isTicking && mounted) resumePlayback();
-                                              });
-                                            }
-
-                                            // Clear visual key press after 300ms
-                                            Future.delayed(Duration(milliseconds: 300), () {
-                                              if (mounted) {
-                                                activeNotesNotifier.value = activeNotesNotifier.value..remove(note);
-                                              }
-                                            });
-                                          },
+                                          onKeyPressed: (note) => onInputReceived(note),
                                         );
                                       },
                                     ),

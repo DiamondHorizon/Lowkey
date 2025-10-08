@@ -5,6 +5,8 @@ class MidiService {
   static final MidiService _instance = MidiService._internal();
   factory MidiService() => _instance;
   MidiService._internal();
+  bool isListening = false;
+  void Function(int)? onNoteReceived;
   
   Set<int> _pressedNotes = {};
   Set<int> _requiredNotes = {};
@@ -31,6 +33,19 @@ class MidiService {
   //   return completer.future;
   // }
 
+  void startListening() {
+    if (isListening) return;
+    isListening = true;
+
+    command.onMidiDataReceived?.listen((MidiPacket packet) {
+      final data = packet.data;
+      if (data.isNotEmpty && (data[0] & 0xF0) == 0x90 && data[2] > 0) {
+        final playedNote = data[1];
+        onNoteReceived?.call(playedNote);
+      }
+    });
+  }
+
   void registerNotePressed(int note) {
     _pressedNotes.add(note);
     if (_chordCompleter != null &&
@@ -42,29 +57,29 @@ class MidiService {
     }
   }
 
-//   Future<void> waitForChord(Set<int> requiredNotes) {
-//     _requiredNotes = requiredNotes;
-//     _pressedNotes.clear();
-//     _chordCompleter = Completer<void>();
+  // Future<void> waitForChord(Set<int> requiredNotes) {
+  //   _requiredNotes = requiredNotes;
+  //   _pressedNotes.clear();
+  //   _chordCompleter = Completer<void>();
 
-//     late StreamSubscription<MidiPacket> subscription;
+  //   late StreamSubscription<MidiPacket> subscription;
 
-//     subscription = command.onMidiDataReceived!.listen((MidiPacket packet) {
-//       final data = packet.data;
-//       if (data.isNotEmpty && (data[0] & 0xF0) == 0x90 && data[2] > 0) { // NoteOn with velocity
-//         final playedNote = data[1];
-//         _pressedNotes.add(playedNote);
+  //   subscription = command.onMidiDataReceived!.listen((MidiPacket packet) {
+  //     final data = packet.data;
+  //     if (data.isNotEmpty && (data[0] & 0xF0) == 0x90 && data[2] > 0) { // NoteOn with velocity
+  //       final playedNote = data[1];
+  //       _pressedNotes.add(playedNote);
 
-//         if (_pressedNotes.containsAll(_requiredNotes)) {
-//           subscription.cancel();
-//           _chordCompleter!.complete();
-//           _chordCompleter = null;
-//           _pressedNotes.clear();
-//           _requiredNotes.clear();
-//         }
-//       }
-//     });
+  //       if (_pressedNotes.containsAll(_requiredNotes)) {
+  //         subscription.cancel();
+  //         _chordCompleter!.complete();
+  //         _chordCompleter = null;
+  //         _pressedNotes.clear();
+  //         _requiredNotes.clear();
+  //       }
+  //     }
+  //   });
 
-//     return _chordCompleter!.future;
-//   }
+  //   return _chordCompleter!.future;
+  // }
 }
