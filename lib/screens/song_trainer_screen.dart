@@ -259,7 +259,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 
     // Remove notes if all are found
     if (matchingNotes.isNotEmpty && allExpectedNotesPlayed) {
-      for (final matchingNote in matchingNotes) { // Iterate through all notes
+      for (final matchingNote in expectedNotes) { // Iterate through all notes
         final updated = [...activeFallingNotesNotifier.value]; // Gets the list of active notes
         updated.remove(matchingNote); // Removes the matched note from the list
         activeFallingNotesNotifier.value = updated; // Updates the screen
