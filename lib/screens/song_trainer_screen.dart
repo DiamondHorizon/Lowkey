@@ -53,6 +53,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     WakelockPlus.enable();
     loadSettings();
     loadNoteEvents();
+    midiService.onNoteReceived = onInputReceived;
   }
 
   @override
@@ -213,6 +214,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     if (filtered.isEmpty) return;
 
     remainingNotes.clear();
+    matchedExpectedPitches.clear();
     activeNotesNotifier.value = {};
     activeFallingNotesNotifier.value = filtered;
 
@@ -223,7 +225,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     // Start playback immediately
     isPausedNotifier.value = false;
     startPlayback();
-    midiService.onNoteReceived = onInputReceived;
+    midiService.startListening();
   }
 
   void onInputReceived(int note) {
