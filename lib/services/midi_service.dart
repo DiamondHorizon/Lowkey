@@ -7,6 +7,7 @@ class MidiService {
   MidiService._internal();
   bool isListening = false;
   void Function(int)? onNoteReceived;
+  void Function(int)? onNoteReleased;
   
   Set<int> _pressedNotes = {};
   Set<int> _requiredNotes = {};
@@ -39,9 +40,18 @@ class MidiService {
 
     command.onMidiDataReceived?.listen((MidiPacket packet) {
       final data = packet.data;
-      if (data.isNotEmpty && (data[0] & 0xF0) == 0x90 && data[2] > 0) {
-        final playedNote = data[1];
-        onNoteReceived?.call(playedNote);
+      if (data.isEmpty) return;
+
+      final status = data[0] & 0xF0;
+      final note = data[1];
+      final velocity = data[2];
+
+      if (status == 0x90 && velocity > 0) {
+        // Note On
+        onNoteReceived?.call(note);
+      } else if ((status == 0x80) || (status == 0x90 && velocity == 0)) {
+        // Note Off
+        onNoteReleased?.call(note);
       }
     });
   }

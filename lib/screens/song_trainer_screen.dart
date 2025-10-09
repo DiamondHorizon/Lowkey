@@ -54,6 +54,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     loadSettings();
     loadNoteEvents();
     midiService.onNoteReceived = onInputReceived;
+    midiService.onNoteReleased = onNoteReleased;
   }
 
   @override
@@ -228,6 +229,12 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     midiService.startListening();
   }
 
+  void onNoteReleased(int note) {
+    activeNotesNotifier.value = {
+      ...activeNotesNotifier.value..remove(note)
+    };
+  }
+
   void onInputReceived(int note) {
     midiService.registerNotePressed(note);
     activeNotesNotifier.value = {...activeNotesNotifier.value, note}; // Adds active notes to the set, triggers keyboard rebuild for highlighting
@@ -246,7 +253,9 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
     }
 
     // Determine if every expected note is being
-    final allExpectedNotesPlayed = expectedNoteNumbers.difference(matchedExpectedPitches).isEmpty;
+    final allExpectedNotesPlayed = expectedNoteNumbers.every(
+      (pitch) => activeNotesNotifier.value.contains(pitch)
+    );
 
     // Remove notes if all are found
     if (matchingNotes.isNotEmpty && allExpectedNotesPlayed) {
@@ -403,6 +412,7 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 // Make it acutally sound like the song
 // Indicate scrolling in pause menu
 // Make falling notes line up with keys
+// Only take away notes when all pressed
 
 // Eventually:
 // Add song progression
