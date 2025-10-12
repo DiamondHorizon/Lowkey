@@ -23,14 +23,13 @@ class SongTrainerScreen extends StatefulWidget {
 class _SongTrainerScreenState extends State<SongTrainerScreen> {
   final midiService = MidiService();
   double tempoFactor = 1.0; // Default to 100% speed
+  double baseSpeed = 0.1;
   String selectedHand = 'both';
   List<NoteInstruction>? instructions;
   bool waitMode = false;
   Map<int, String> handMap = {};
-  double baseSpeed = 0.1;
   Set<NoteInstruction> remainingNotes = {};
   bool isLoading = true;
-  final double noteHeight = 20.0;
   double keyboardY = 0.0;
   final ValueNotifier<int> currentTimeNotifier = ValueNotifier(0);
   bool isTicking = false;
@@ -40,8 +39,10 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   final activeNotesNotifier = ValueNotifier<Set<int>>({});
   final isPausedNotifier = ValueNotifier<bool>(true);
   bool hasStartedPlayback = false;
-  int startTimeOffset = 0;
+  int scaledTimeOffset = 0;
   Set<int> matchedExpectedPitches = {};
+  List<NoteInstruction> allFilteredNotes = [];
+  int? pausedAtTimestamp;
 
   @override
   void initState() {
@@ -105,31 +106,38 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   void startPlayback() {
     if (isTicking || isPausedNotifier.value) return;
     isTicking = true;
-    final startTime = DateTime.now().millisecondsSinceEpoch - currentTimeNotifier.value;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final startTime = pausedAtTimestamp != null
+        ? now - (scaledTimeOffset / tempoFactor).toInt()
+        : now - (scaledTimeOffset / tempoFactor).toInt();
 
     void tick() {
       if (!mounted) return;
+    
+      final rawTime = DateTime.now().millisecondsSinceEpoch - startTime;
+      final scaledTime = (rawTime * tempoFactor).toInt();
 
-      final currentTime = DateTime.now().millisecondsSinceEpoch - startTime;
+      final visible = getVisibleNotes(allFilteredNotes, scaledTime, stackHeight);
+      activeFallingNotesNotifier.value = visible;
 
       // When the user pauses the playback
       if (isPausedNotifier.value) {
         isTicking = false;
-        startTimeOffset = currentTime;
+        pausedAtTimestamp = DateTime.now().millisecondsSinceEpoch;
+        scaledTimeOffset = scaledTime;
         return;
       }
 
       // Loop through all currently falling notes
       final anyremainingNoteAtKeyboard = activeFallingNotesNotifier.value.any((note) {
-        final y = getYPosition(note.timeMs, currentTime); // Get the y-position of each note
-        return remainingNotes.contains(note) && // Check if the note is still in remaining notes
-              y >= keyboardY - noteHeight && // Check if the note is near the keyboard
-              y <= keyboardY + noteHeight;
+        final bottomY = getYPosition(note.timeMs, scaledTime);
+        return remainingNotes.contains(note) && bottomY >= keyboardY && bottomY <= keyboardY + 10;
       }); // Assigns true to anyremainingNoteAtKeyboard if a note exists within that criteria
 
       // If not using wait mode or there are no pending notes near the keyboard
       if (!waitMode || !anyremainingNoteAtKeyboard) {
-        currentTimeNotifier.value = currentTime; // Actually tick
+        currentTimeNotifier.value = scaledTime; // Actually tick
         Future.delayed(Duration(milliseconds: 16), tick); // Recursive call in 16ms
       } else {
         isTicking = false; // Stops ticking
@@ -163,11 +171,10 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
       resumePlayback();
     }
   }
-  
+    
   double getYPosition(int noteTime, int currentTime) {
-    final y = (currentTime - noteTime) * tempoFactor * baseSpeed;
-    final stopY = keyboardY - noteHeight;
-    return (waitMode && !isTicking) ? (y > stopY ? stopY : y) : y;
+    final y = (currentTime - noteTime) * baseSpeed;
+    return y;// (waitMode && !isTicking) ? (y > keyboardY ? keyboardY : y) : y;
   }
 
   double mapPitchToX(int pitch) {
@@ -182,46 +189,40 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
   List<NoteInstruction> getVisibleNotes(List<NoteInstruction> notes, int currentTime, double stackHeight) {
     return notes.where((note) {
       final y = getYPosition(note.timeMs, currentTime);
-      return y >= -noteHeight && y <= stackHeight + noteHeight;
+      return y >= -note.durationMs && y <= stackHeight + note.durationMs;
     }).toList();
   }
 
   List<NoteInstruction> getExpectedNotes(List<NoteInstruction> notes, int currentTime) {
     return notes.where((note) {
-      final y = getYPosition(note.timeMs, currentTime);
+      final bottomY = getYPosition(note.timeMs, currentTime);
       return remainingNotes.contains(note) &&
-            y >= keyboardY - noteHeight * 1.5 &&
-            y <= keyboardY + noteHeight;
-    }).toList();
-  }
-
-  List<NoteInstruction> getMissedNotes(List<NoteInstruction> notes, int currentTime, double screenHeight) {
-    return notes.where((note) {
-      final y = getYPosition(note.timeMs, currentTime);
-      return y > screenHeight + noteHeight;
+            bottomY >= keyboardY - 10 &&
+            bottomY <= keyboardY + 10;
     }).toList();
   }
 
   void playSong() {
-    startTimeOffset = 0;
+    scaledTimeOffset = 0;
     isTicking = false;
     if (instructions == null || instructions!.isEmpty) return;
+    
+    final filtered = filterByHand(instructions!, selectedHand);
 
-    final filtered = filterByHand(
-      instructions!.where((e) => e.isNoteOn).toList(),
-      selectedHand,
-    );
 
     if (filtered.isEmpty) return;
 
     remainingNotes.clear();
     matchedExpectedPitches.clear();
     activeNotesNotifier.value = {};
-    activeFallingNotesNotifier.value = filtered;
+    allFilteredNotes = filtered;
+    activeFallingNotesNotifier.value = getVisibleNotes(
+      allFilteredNotes, 
+      currentTimeNotifier.value, 
+      stackHeight
+    );
 
-    for (final note in filtered) {
-      remainingNotes.add(note);
-    }
+    remainingNotes = {...allFilteredNotes};
 
     // Start playback immediately
     isPausedNotifier.value = false;
@@ -368,7 +369,8 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
                                 FallingNoteLayer(
                                   activeFallingNotesNotifier: activeFallingNotesNotifier,
                                   notes: visibleNotes,
-                                  noteHeight: noteHeight,
+                                  tempoFactor: tempoFactor,
+                                  baseSpeed: baseSpeed,
                                   getYPosition: (noteTime) => getYPosition(noteTime, currentTime),
                                   mapPitchToX: mapPitchToX,
                                   keyWidth: keyWidth,
@@ -412,7 +414,6 @@ class _SongTrainerScreenState extends State<SongTrainerScreen> {
 // Make it acutally sound like the song
 // Indicate scrolling in pause menu
 // Make falling notes line up with keys
-// Only take away notes when all pressed
 
 // Eventually:
 // Add song progression

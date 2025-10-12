@@ -4,14 +4,14 @@ import 'package:flutter/services.dart';
 class NoteInstruction {
   final int noteNumber;
   final int timeMs;
+  final int durationMs;
   final String hand;
-  final bool isNoteOn;
 
   NoteInstruction({
     required this.noteNumber,
     required this.timeMs,
+    required this.durationMs,
     required this.hand,
-    required this.isNoteOn,
   });
 }
 
@@ -22,9 +22,9 @@ Future<List<NoteInstruction>> loadNoteInstructionsFromJson(String filename) asyn
   return rawNotes.map((note) {
     return NoteInstruction(
       noteNumber: note['note'],
-      timeMs: note['time'],
+      timeMs: note['startTimeMs'],
+      durationMs: note['durationMs'],
       hand: note['hand'],
-      isNoteOn: true, // You can infer note-off later if needed
     );
   }).toList();
 }

@@ -6,25 +6,25 @@ import '../widgets/falling_note.dart';
 class FallingNoteLayer extends StatelessWidget {
   final ValueNotifier<List<NoteInstruction>> activeFallingNotesNotifier;
   final List<NoteInstruction> notes;
-  final double noteHeight;
   final double Function(int) getYPosition;
   final double Function(int) mapPitchToX;
   final double keyWidth;
+  final double tempoFactor;
+  final double baseSpeed;
 
   const FallingNoteLayer({
     required this.activeFallingNotesNotifier,
     required this.notes,
-    required this.noteHeight,
     required this.getYPosition,
     required this.mapPitchToX,
     required this.keyWidth,
+    required this.tempoFactor,
+    required this.baseSpeed,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return ValueListenableBuilder<List<NoteInstruction>>(
       valueListenable: activeFallingNotesNotifier,
       builder: (context, notes, _) {
@@ -32,18 +32,20 @@ class FallingNoteLayer extends StatelessWidget {
           children: notes
               .map((note) {
                 final y = getYPosition(note.timeMs);
-                if (y < -noteHeight || y > screenHeight + noteHeight) return null;
+                final noteHeight = note.durationMs * baseSpeed ;
 
                 return Positioned(
-                  top: y,
+                  top: y - noteHeight,
                   left: mapPitchToX(note.noteNumber),
                   child: FallingNote(
                     key: ValueKey('${note.noteNumber}_${note.timeMs}'),
                     pitch: note.noteNumber,
                     yPosition: y,
-                    color: note.hand == 'left' ? Colors.blue : Colors.green,
+                    color: note.hand == 'left' ? Colors.purple : Colors.blue,
                     keyWidth: keyWidth,
-                    noteHeight: noteHeight,
+                    durationMs: note.durationMs,
+                    tempoFactor: tempoFactor,
+                    baseSpeed: baseSpeed,
                     mapPitchToX: mapPitchToX,
                   ),
                 );

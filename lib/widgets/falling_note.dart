@@ -5,7 +5,9 @@ class FallingNote extends StatelessWidget {
   final double yPosition;
   final Color color;
   final double keyWidth;
-  final double noteHeight;
+  final int durationMs;
+  final double tempoFactor;
+  final double baseSpeed;
   final double Function(int pitch) mapPitchToX;
 
   const FallingNote({
@@ -13,13 +15,17 @@ class FallingNote extends StatelessWidget {
     required this.yPosition,
     required this.color,
     required this.keyWidth,
-    required this.noteHeight,
+    required this.durationMs,
+    required this.tempoFactor,
+    required this.baseSpeed,
     required this.mapPitchToX,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final double noteHeight = durationMs * baseSpeed;
+
     return AnimatedOpacity(
       duration: Duration(milliseconds: 200),
       opacity: 1.0,

@@ -1,8 +1,7 @@
 [
-  { "title": "Moonlight Sonata", "filename": "moonlight_sonata.mid" },
-  { "title": "Dark, Darker, Yet Darker", "filename": "dark_darker_yer_darker.mid" },
-  { "title": "It's TV Time", "filename": "its_tv_time.mid" },
-  { "title": "He's a Pirate", "filename": "hes_a_pirate.mid" },
   { "title": "Für Elise", "filename": "fur_elise.json" },
-  { "title": "Big Shot", "filename": "bigshot.json" }
+  { "title": "Big Shot", "filename": "big_shot.json" },
+  { "title": "Imperial March", "filename": "imperial_march.json" },
+  { "title": "The Legend of Zelda Theme", "filename": "zelda_theme.json" },
+  { "title": "tadc", "filename": "output_notes.json" }
 ]
