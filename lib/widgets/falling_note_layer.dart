@@ -9,7 +9,6 @@ class FallingNoteLayer extends StatelessWidget {
   final double Function(int) getYPosition;
   final double Function(int) mapPitchToX;
   final double keyWidth;
-  final double tempoFactor;
   final double baseSpeed;
 
   const FallingNoteLayer({
@@ -18,7 +17,6 @@ class FallingNoteLayer extends StatelessWidget {
     required this.getYPosition,
     required this.mapPitchToX,
     required this.keyWidth,
-    required this.tempoFactor,
     required this.baseSpeed,
     Key? key,
   }) : super(key: key);
@@ -39,14 +37,10 @@ class FallingNoteLayer extends StatelessWidget {
                   left: mapPitchToX(note.noteNumber),
                   child: FallingNote(
                     key: ValueKey('${note.noteNumber}_${note.timeMs}'),
-                    pitch: note.noteNumber,
-                    yPosition: y,
                     color: note.hand == 'left' ? Colors.purple : Colors.blue,
                     keyWidth: keyWidth,
                     durationMs: note.durationMs,
-                    tempoFactor: tempoFactor,
                     baseSpeed: baseSpeed,
-                    mapPitchToX: mapPitchToX,
                   ),
                 );
               })

@@ -9,8 +9,8 @@ class MidiService {
   void Function(int)? onNoteReceived;
   void Function(int)? onNoteReleased;
   
-  Set<int> _pressedNotes = {};
-  Set<int> _requiredNotes = {};
+  final Set<int> _pressedNotes = {};
+  final Set<int> _requiredNotes = {};
   Completer<void>? _chordCompleter;
   
   static final MidiCommand command = MidiCommand();
